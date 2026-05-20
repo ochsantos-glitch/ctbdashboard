@@ -342,7 +342,8 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
         ) : (
           <div className="bm-pcard-stages">
             <div className="bm-pcard-stage">FATP</div>
-            <div className="bm-pcard-stage">MLB (SMT)</div>
+            <div className="bm-pcard-stage">MLB (SMT1)</div>
+            <div className="bm-pcard-stage">MLB (SMT2)</div>
           </div>
         )}
       </div>
