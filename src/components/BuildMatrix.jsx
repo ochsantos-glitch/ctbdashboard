@@ -300,24 +300,25 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
 
   return (
     <div className="bm-pcard">
+      {/* Header — matches Nimbus: name left, buttons right */}
       <div className="bm-pcard-header">
-        <div className="bm-pcard-title-area">
-          {renaming ? (
-            <input className="bm-pcard-name-input" value={nameDraft} autoFocus
-              onChange={e => setNameDraft(e.target.value)}
-              onBlur={saveName}
-              onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setRenaming(false) }} />
-          ) : (
-            <h3 className="bm-pcard-name">{project.name}</h3>
-          )}
-        </div>
+        {renaming ? (
+          <input className="bm-pcard-name-input" value={nameDraft} autoFocus
+            onChange={e => setNameDraft(e.target.value)}
+            onBlur={saveName}
+            onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setRenaming(false) }} />
+        ) : (
+          <h3 className="bm-pcard-name">{project.name}</h3>
+        )}
         <div className="bm-pcard-actions">
-          <button className="bm-pcard-edit-btn" onClick={onEditBuilds}>
-            ✎ Edit Builds
-          </button>
+          <button className="bm-pcard-icon-btn" title="Favorite">★</button>
+          <button className="bm-pcard-icon-btn" title="Message">✉</button>
+          <button className="bm-pcard-icon-btn" title="More">▾</button>
+          <div className="bm-pcard-divider" />
+          <button className="bm-pcard-edit-btn" onClick={onEditBuilds}>✎ Edit Builds</button>
           <div className="bm-pcard-options-wrap" style={{ position: 'relative' }}>
             <button className="bm-pcard-options-btn" onClick={() => setShowMenu(v => !v)}>
-              Project Options ▼
+              Project Options ▾
             </button>
             {showMenu && (
               <div className="bm-pcard-dropdown" onMouseLeave={() => setShowMenu(false)}>
@@ -329,34 +330,21 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
         </div>
       </div>
 
+      {/* Body — vertical list: bold type + separator + stages, exactly like Nimbus */}
       <div className="bm-pcard-body">
         {builds.length === 0 ? (
           <p className="bm-pcard-empty">No build configs yet — click "Edit Builds" to add.</p>
         ) : (
-          Object.entries(byType).slice(0, 6).map(([type, configs]) => {
-            const hasFATP = configs.some(cfg => !boardOf(cfg) || true) // all configs go through FATP
-            const hasMLB  = configs.some(cfg => boardOf(cfg) === 'MMAIN')
+          Object.entries(byType).map(([type, configs]) => {
+            const hasMLB = configs.some(cfg => boardOf(cfg) === 'MMAIN')
             return (
               <div key={type} className="bm-pcard-group">
                 <div className="bm-pcard-type-header">{type}</div>
-                {hasFATP && <div className="bm-pcard-stage">FATP</div>}
-                {hasMLB  && <div className="bm-pcard-stage">MLB (SMT)</div>}
-                {!hasFATP && !hasMLB && <div className="bm-pcard-stage">{configs.length} config{configs.length !== 1 ? 's' : ''}</div>}
+                <div className="bm-pcard-stage">FATP</div>
+                {hasMLB && <div className="bm-pcard-stage">MLB (SMT)</div>}
               </div>
             )
           })
-        )}
-      </div>
-
-      <div className="bm-pcard-footer">
-        <span className="bm-pcard-stat">{builds.length} config{builds.length !== 1 ? 's' : ''}</span>
-        <span className="bm-pcard-stat">{totalQty.toLocaleString()} units</span>
-        <span className="bm-pcard-stat">{completed} completed</span>
-        <span className="bm-pcard-stat">Budget: ${project.budget?.toLocaleString()}</span>
-        {alertCount > 0 && (
-          <span className={`bm-pcard-stat bm-pcard-alert ${hasDanger ? 'danger' : 'warn'}`}>
-            ⚠ {alertCount} alert{alertCount !== 1 ? 's' : ''}
-          </span>
         )}
       </div>
     </div>

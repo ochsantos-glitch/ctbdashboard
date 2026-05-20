@@ -2696,8 +2696,30 @@
 .bm-pcard-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
+}
+.bm-pcard-icon-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.bm-pcard-icon-btn:hover { background: #f1f5f9; color: #1e293b; }
+.bm-pcard-divider {
+  width: 1px;
+  height: 22px;
+  background: #e2e8f0;
+  margin: 0 2px;
 }
 .bm-pcard-edit-btn {
   padding: 6px 14px;
@@ -2748,16 +2770,15 @@
 .bm-pcard-body {
   padding: 14px 20px;
   display: flex;
-  gap: 28px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 16px;
   min-height: 60px;
 }
 .bm-pcard-empty { color: #94a3b8; font-size: 13px; margin: 0; }
 .bm-pcard-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 80px;
+  gap: 3px;
 }
 .bm-pcard-type-header {
   font-size: 13px;
