@@ -285,6 +285,7 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
   const [editing,        setEditing]        = useState(false)
   const [editingIdx,     setEditingIdx]     = useState(null)
   const [stageDraft,     setStageDraft]     = useState('')
+  const [selectedStage,  setSelectedStage]  = useState(null)
 
   const stages = project.stages ?? DEFAULT_STAGES
 
@@ -339,7 +340,9 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
             <button className="bm-pcard-done-btn" onClick={() => { setEditing(false); setEditingIdx(null) }}>✓ Done</button>
           ) : (
             <>
-              <button className="bm-pcard-edit-btn" onClick={onEditBuilds}>✎ Edit Builds</button>
+              <button className="bm-pcard-edit-btn" onClick={() => onEditBuilds(selectedStage)}>
+                {selectedStage ? `✎ Edit ${selectedStage}` : '✎ Edit Builds'}
+              </button>
               <div className="bm-pcard-options-wrap" style={{ position: 'relative' }}>
                 <button className="bm-pcard-options-btn" onClick={() => setShowMenu(v => !v)}>Project Options ▾</button>
                 {showMenu && (
@@ -358,7 +361,8 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
       <div className="bm-pcard-body">
         <div className="bm-pcard-stages">
           {stages.map((stage, idx) => (
-            <div key={idx} className="bm-pcard-stage-row">
+            <div key={idx} className={`bm-pcard-stage-row ${!editing && selectedStage === stage ? 'selected' : ''}`}
+              onClick={() => !editing && setSelectedStage(s => s === stage ? null : stage)}>
               {editing && editingIdx === idx ? (
                 <input className="bm-pcard-stage-input" value={stageDraft} autoFocus
                   onChange={e => setStageDraft(e.target.value)}
@@ -369,8 +373,8 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
                   <span className="bm-pcard-stage">{stage}</span>
                   {editing && (
                     <>
-                      <button className="bm-pcard-stage-pencil" onClick={() => startEditStage(idx)} title="Rename">✎</button>
-                      <button className="bm-pcard-stage-del" onClick={() => deleteStage(idx)} title="Remove">✕</button>
+                      <button className="bm-pcard-stage-pencil" onClick={e => { e.stopPropagation(); startEditStage(idx) }} title="Rename">✎</button>
+                      <button className="bm-pcard-stage-del" onClick={e => { e.stopPropagation(); deleteStage(idx) }} title="Remove">✕</button>
                     </>
                   )}
                 </>
@@ -462,7 +466,7 @@ function ProjectLanding({ projects, setProjects, builds, alerts, activeProjectId
             project={p}
             builds={builds}
             alerts={alerts}
-            onEditBuilds={() => { setActiveProjectId(p.id); onEditBuilds() }}
+            onEditBuilds={stage => { setActiveProjectId(p.id); onEditBuilds(stage) }}
             onDelete={() => deleteProject(p.id)}
             onRename={name => renameProject(p.id, name)}
             onUpdateStages={stages => updateProjectStages(p.id, stages)}
@@ -742,7 +746,8 @@ function BOMPartsTable({ bom, builds }) {
 }
 
 // ── Configs flat table ────────────────────────────────────────────────────────
-const FLAT_COLS = [
+const FLAT_COLS_BASE = [
+  { key: 'Stage',      label: 'Stage',      width: 130, type: 'stage' },
   { key: 'Config',     label: 'Config',     width: 150, type: 'text' },
   { key: 'Type',       label: 'Type',       width: 90,  type: 'select', options: TYPES },
   { key: 'Quantity',   label: 'Qty',        width: 80,  type: 'number' },
@@ -751,11 +756,15 @@ const FLAT_COLS = [
   ...CONFIG_DETAIL_FIELDS.map(f => ({ key: f.key, label: f.label, width: 120, type: 'text' })),
 ]
 
-function ConfigsView({ builds, setBuilds, bom }) {
+function ConfigsView({ builds, setBuilds, bom, stages = [] }) {
   const [editingConfig, setEditingConfig] = useState(null)
   const [editingCell,   setEditingCell]   = useState(null)
   const [draft,         setDraft]         = useState('')
   const [colFilter,     setColFilter]     = useState({})
+
+  const FLAT_COLS = FLAT_COLS_BASE.map(c =>
+    c.key === 'Stage' ? { ...c, options: ['', ...stages] } : c
+  )
 
   function saveCell(configName, col, value) {
     setBuilds(prev => prev.map(b => b.Config !== configName ? b : { ...b, [col.key]: col.type === 'number' ? (Number(value) || 0) : value }))
@@ -788,12 +797,12 @@ function ConfigsView({ builds, setBuilds, bom }) {
                     <td key={col.key} className="bm-flat-cell"
                       onClick={() => !isEditing && (setEditingCell({ configName: c.Config, key: col.key }), setDraft(String(value)))}>
                       {isEditing ? (
-                        col.type === 'select' ? (
+                        (col.type === 'select' || col.type === 'stage') ? (
                           <select className="bm-inline-select" value={draft} autoFocus
                             onChange={e => setDraft(e.target.value)}
                             onBlur={() => saveCell(c.Config, col, draft)}
                             onKeyDown={e => e.key === 'Escape' && setEditingCell(null)}>
-                            {col.options.map(o => <option key={o}>{o}</option>)}
+                            {col.options.map(o => <option key={o} value={o}>{o || '— unassigned —'}</option>)}
                           </select>
                         ) : (
                           <input className="bm-inline-input" type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text'}
@@ -802,6 +811,8 @@ function ConfigsView({ builds, setBuilds, bom }) {
                             onBlur={() => saveCell(c.Config, col, draft)}
                             onKeyDown={e => { if (e.key === 'Enter') saveCell(c.Config, col, draft); if (e.key === 'Escape') setEditingCell(null) }} />
                         )
+                      ) : col.key === 'Stage' ? (
+                        <span className={value ? 'bm-stage-chip' : 'tm-na-dash'}>{value || '—'}</span>
                       ) : col.key === 'Type' ? (
                         <span className="bm-type-chip" style={{ background: colors.header, color: colors.text }}>{value}</span>
                       ) : col.key === 'Status' ? (
@@ -909,10 +920,11 @@ function BOMView({ bom, setBom }) {
 }
 
 // ── Build Detail (shown after "Edit Builds") ──────────────────────────────────
-function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget, allocations, setAllocations, projects, activeProjectId, setActiveProjectId, setProjects, onBack }) {
+function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget, allocations, setAllocations, projects, activeProjectId, setActiveProjectId, setProjects, selectedStage, onBack }) {
   const [subTab,      setSubTab]      = useState('current') // current | configs | bom | allocations
   const [topTab,      setTopTab]      = useState('buildMatrix') // drp | buildMatrix | allocations
   const [phase,       setPhase]       = useState('All')
+  const [stageFilter, setStageFilter] = useState(selectedStage ?? 'All')
   const [showAddForm, setShowAddForm] = useState(false)
   const [importMsg,   setImportMsg]   = useState(null)
   const csvInputRef = useRef(null)
@@ -922,7 +934,8 @@ function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget
   })
   useEffect(() => { localStorage.setItem('bm-custom-rows', JSON.stringify(customRows)) }, [customRows])
 
-  const activeProject = projects.find(p => p.id === activeProjectId) ?? projects[0]
+  const activeProject  = projects.find(p => p.id === activeProjectId) ?? projects[0]
+  const projectStages  = activeProject?.stages ?? DEFAULT_STAGES
   const [renamingProject, setRenamingProject] = useState(false)
   const [projectNameDraft, setProjectNameDraft] = useState(activeProject?.name ?? '')
 
@@ -932,8 +945,8 @@ function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget
     }
     setRenamingProject(false)
   }
-
-  const phaseBuilds = phase === 'All' ? builds : builds.filter(b => boardOf(b.Config) === phase)
+  const phaseBuilds   = (phase === 'All' ? builds : builds.filter(b => boardOf(b.Config) === phase))
+    .filter(b => stageFilter === 'All' || (b.Stage ?? '') === stageFilter)
   const totalQty    = builds.reduce((s, b) => s + (Number(b.Quantity)||0), 0)
   const alertCount  = alerts.length
   const hasDanger   = alerts.some(a => a.type === 'danger')
@@ -1018,6 +1031,13 @@ function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget
 
       {/* ── Build Matrix sub-tabs ─────────────────────────────── */}
       {topTab === 'buildMatrix' && (<>
+        {/* Stage filter tabs */}
+        <div className="bm-stage-filter-bar">
+          <button className={`bm-stage-filter-btn ${stageFilter === 'All' ? 'active' : ''}`} onClick={() => setStageFilter('All')}>All</button>
+          {projectStages.map(s => (
+            <button key={s} className={`bm-stage-filter-btn ${stageFilter === s ? 'active' : ''}`} onClick={() => setStageFilter(s)}>{s}</button>
+          ))}
+        </div>
         <div className="bm-subtab-bar">
           <div className="bm-subtabs">
             {SUBTABS.map(t => (
@@ -1052,7 +1072,7 @@ function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget
         )}
 
         {subTab === 'configs' && (
-          <ConfigsView builds={phaseBuilds} setBuilds={setBuilds} bom={bom} />
+          <ConfigsView builds={phaseBuilds} setBuilds={setBuilds} bom={bom} stages={projectStages} />
         )}
 
         {subTab === 'bom' && (
@@ -1065,7 +1085,8 @@ function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget
 
 // ── BuildMatrix main export ───────────────────────────────────────────────────
 export default function BuildMatrix({ builds, setBuilds, bom, setBom, alerts, budget, setBudget, projects = [], setProjects, activeProjectId, setActiveProjectId, allocations = [], setAllocations }) {
-  const [view, setView] = useState('landing')
+  const [view,          setView]          = useState('landing')
+  const [selectedStage, setSelectedStage] = useState(null)
 
   return view === 'landing' ? (
     <ProjectLanding
@@ -1075,7 +1096,7 @@ export default function BuildMatrix({ builds, setBuilds, bom, setBom, alerts, bu
       alerts={alerts}
       activeProjectId={activeProjectId}
       setActiveProjectId={setActiveProjectId}
-      onEditBuilds={() => setView('detail')}
+      onEditBuilds={stage => { setSelectedStage(stage); setView('detail') }}
     />
   ) : (
     <BuildDetail
@@ -1086,7 +1107,8 @@ export default function BuildMatrix({ builds, setBuilds, bom, setBom, alerts, bu
       allocations={allocations} setAllocations={setAllocations}
       projects={projects} setProjects={setProjects}
       activeProjectId={activeProjectId} setActiveProjectId={setActiveProjectId}
-      onBack={() => setView('landing')}
+      selectedStage={selectedStage}
+      onBack={() => { setView('landing'); setSelectedStage(null) }}
     />
   )
 }
