@@ -961,8 +961,6 @@ function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget
           <button className={`bm-topnav-btn ${topTab === 'allocations' ? 'active' : ''}`} onClick={() => setTopTab('allocations')}>Allocations</button>
         </div>
         <div className="bm-detail-topbar-right">
-          <span className="bm-stat-chip">{totalQty.toLocaleString()} units</span>
-          <span className="bm-stat-chip">{builds.length} configs</span>
           {alertCount > 0 && <span className={`bm-stat-chip bm-alert-chip ${hasDanger ? 'danger' : 'warn'}`}>{alertCount} alert{alertCount > 1 ? 's' : ''}</span>}
           <span className="bm-budget-row">Budget: <EditableCell value={budget} onChange={setBudget} min={0} prefix="$" decimals={0} /></span>
         </div>
