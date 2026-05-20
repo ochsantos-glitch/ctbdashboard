@@ -2054,6 +2054,24 @@
   margin-bottom: 14px;
 }
 .alloc-config-group { display: flex; align-items: center; gap: 8px; }
+.alloc-config-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.alloc-config-tab {
+  padding: 5px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.alloc-config-tab:hover { background: #f1f5f9; color: #1e293b; }
+.alloc-config-tab.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; font-weight: 600; }
 .alloc-config-stats { display: flex; align-items: center; gap: 12px; }
 
 .alloc-table-wrap { overflow-x: auto; margin-bottom: 16px; }

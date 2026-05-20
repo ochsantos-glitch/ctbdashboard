@@ -127,23 +127,23 @@ export default function Allocation({ allocations, setAllocations, builds = [] })
         Assign units per requester for each build config. Reflected in Build Matrix and shortage calculations.
       </p>
 
-      {/* Config selector */}
-      <div className="alloc-toolbar">
-        <div className="alloc-config-group">
-          <label className="mat-field-label">Config</label>
-          <select
-            className="filter-select"
-            value={selectedConfig}
-            onChange={e => { setSelectedConfig(e.target.value); setEditingCell(null) }}
-          >
-            {allConfigs.length === 0
-              ? <option value="">No configs in Build Matrix</option>
-              : allConfigs.map(c => <option key={c} value={c}>{c}</option>)
-            }
-          </select>
+      {/* Config tabs — auto-populated from Build Matrix */}
+      {allConfigs.length === 0 ? (
+        <div className="mat-empty">Add configs in Build Matrix first.</div>
+      ) : (
+        <div className="alloc-config-tabs">
+          {allConfigs.map(c => (
+            <button
+              key={c}
+              className={`alloc-config-tab ${selectedConfig === c ? 'active' : ''}`}
+              onClick={() => { setSelectedConfig(c); setEditingCell(null) }}
+            >{c}</button>
+          ))}
         </div>
+      )}
 
-        {selectedConfig && configBuild && (
+      {selectedConfig && configBuild && (
+        <div className="alloc-toolbar">
           <div className="alloc-config-stats">
             <span className="mat-stat">Build Qty <strong>{configQty.toLocaleString()}</strong></span>
             <span className="mat-stat">Allocated <strong>{totalAllocated.toLocaleString()}</strong></span>
@@ -151,19 +151,16 @@ export default function Allocation({ allocations, setAllocations, builds = [] })
               Remaining <strong>{unallocated.toLocaleString()}</strong>
             </span>
           </div>
-        )}
-
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn-export" onClick={addRow} disabled={!selectedConfig}>+ Add Row</button>
-          {rows.length > 0 && (
-            <button className="btn-export" onClick={exportCSV}>↓ Export CSV</button>
-          )}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <button className="btn-export" onClick={addRow}>+ Add Row</button>
+            {rows.length > 0 && (
+              <button className="btn-export" onClick={exportCSV}>↓ Export CSV</button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {!selectedConfig || allConfigs.length === 0 ? (
-        <div className="mat-empty">Add configs in Build Matrix first.</div>
-      ) : (
+      {selectedConfig && allConfigs.length > 0 && (
         <>
           {unallocated < 0 && (
             <div className="mat-shortage-banner">
