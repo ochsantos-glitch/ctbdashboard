@@ -2748,32 +2748,29 @@
 .bm-pcard-body {
   padding: 14px 20px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 28px;
+  flex-wrap: wrap;
   min-height: 60px;
 }
 .bm-pcard-empty { color: #94a3b8; font-size: 13px; margin: 0; }
-.bm-pcard-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.bm-pcard-type-label {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 3px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 56px;
-  text-align: center;
+.bm-pcard-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 80px;
 }
-.bm-pcard-config-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.bm-pcard-config-chip {
-  font-size: 11px;
-  font-family: monospace;
-  background: #f1f5f9;
+.bm-pcard-type-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #cbd5e1;
+  margin-bottom: 2px;
+}
+.bm-pcard-stage {
+  font-size: 13px;
   color: #475569;
-  padding: 2px 7px;
-  border-radius: 5px;
-  border: 1px solid #e2e8f0;
+  font-weight: 400;
 }
 .bm-pcard-more { font-size: 11px; color: #94a3b8; }
 

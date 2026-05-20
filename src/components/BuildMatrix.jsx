@@ -333,21 +333,15 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
         {builds.length === 0 ? (
           <p className="bm-pcard-empty">No build configs yet — click "Edit Builds" to add.</p>
         ) : (
-          Object.entries(byType).slice(0, 5).map(([type, configs]) => {
-            const colors = typeColor(type)
+          Object.entries(byType).slice(0, 6).map(([type, configs]) => {
+            const hasFATP = configs.some(cfg => !boardOf(cfg) || true) // all configs go through FATP
+            const hasMLB  = configs.some(cfg => boardOf(cfg) === 'MMAIN')
             return (
               <div key={type} className="bm-pcard-group">
-                <span className="bm-pcard-type-label" style={{ background: colors.header, color: colors.text }}>
-                  {type}
-                </span>
-                <div className="bm-pcard-config-chips">
-                  {configs.slice(0, 5).map(cfg => (
-                    <span key={cfg} className="bm-pcard-config-chip">{cfg}</span>
-                  ))}
-                  {configs.length > 5 && (
-                    <span className="bm-pcard-more">+{configs.length - 5}</span>
-                  )}
-                </div>
+                <div className="bm-pcard-type-header">{type}</div>
+                {hasFATP && <div className="bm-pcard-stage">FATP</div>}
+                {hasMLB  && <div className="bm-pcard-stage">MLB (SMT)</div>}
+                {!hasFATP && !hasMLB && <div className="bm-pcard-stage">{configs.length} config{configs.length !== 1 ? 's' : ''}</div>}
               </div>
             )
           })
