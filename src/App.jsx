@@ -162,9 +162,9 @@ function App() {
             bom={bom} setBom={setBom}
             alerts={alerts}
             budget={budget} setBudget={setActiveBudget}
-            projects={projects}
+            projects={projects} setProjects={setProjects}
             activeProjectId={resolvedActiveId} setActiveProjectId={setActiveProjectId}
-            allocations={allocations}
+            allocations={allocations} setAllocations={setAllocations}
           />
         )
       case 'inventory':
@@ -202,7 +202,7 @@ function App() {
     <div className="app-container">
       <nav className="sidebar">
         <div className="sidebar-header">
-          <h2>SC Dashboard</h2>
+          <h2>Build Manager</h2>
           {alertCount > 0 && (
             <div className={`global-alert-badge ${dangerCount > 0 ? 'badge-danger' : 'badge-warning'}`}>
               {alertCount} alert{alertCount !== 1 ? 's' : ''}
