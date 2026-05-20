@@ -948,12 +948,6 @@ function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget
               </span>
             )}
           </div>
-          <div className="bm-detail-phase-tabs">
-            {BOARDS.map(b => (
-              <button key={b} className={`bm-phase-btn ${phase === b ? 'active' : ''}`}
-                onClick={() => setPhase(p => p === b ? 'All' : b)}>{b}</button>
-            ))}
-          </div>
         </div>
         <div className="bm-detail-topnav">
           <button className={`bm-topnav-btn ${topTab === 'drp' ? 'active' : ''}`} onClick={() => setTopTab('drp')}>DRP</button>
