@@ -311,7 +311,7 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
           <h3 className="bm-pcard-name">{project.name}</h3>
         )}
         <div className="bm-pcard-actions">
-          <button className="bm-pcard-icon-btn" title="Refresh" onClick={() => window.location.reload()}>↻</button>
+          <button className="bm-pcard-icon-btn bm-pcard-refresh-btn" title="Refresh" onClick={() => window.location.reload()}>⟳</button>
           <button className="bm-pcard-icon-btn" title="Favorite">★</button>
           <button className="bm-pcard-icon-btn" title="Message">✉</button>
           <button className="bm-pcard-icon-btn" title="More">▾</button>
