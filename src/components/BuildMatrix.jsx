@@ -338,9 +338,7 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
         ) : (
           <div className="bm-pcard-stages">
             <div className="bm-pcard-stage">FATP</div>
-            {builds.some(b => boardOf(b.Config) === 'MMAIN') && (
-              <div className="bm-pcard-stage">MLB (SMT)</div>
-            )}
+            <div className="bm-pcard-stage">MLB (SMT)</div>
           </div>
         )}
       </div>
