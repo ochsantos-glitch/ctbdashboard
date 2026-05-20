@@ -311,7 +311,11 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
           <h3 className="bm-pcard-name">{project.name}</h3>
         )}
         <div className="bm-pcard-actions">
-          <button className="bm-pcard-icon-btn bm-pcard-refresh-btn" title="Refresh" onClick={() => window.location.reload()}>⟳</button>
+          <button className="bm-pcard-icon-btn bm-pcard-refresh-btn" title="Refresh" onClick={() => window.location.reload()}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.06-3.4L9.5 7H14V2.5l-1.35-.15z" fill="currentColor"/>
+            </svg>
+          </button>
           <button className="bm-pcard-icon-btn" title="Favorite">★</button>
           <button className="bm-pcard-icon-btn" title="Message">✉</button>
           <button className="bm-pcard-icon-btn" title="More">▾</button>
