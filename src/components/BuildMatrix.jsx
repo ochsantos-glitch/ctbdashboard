@@ -330,21 +330,17 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
         </div>
       </div>
 
-      {/* Body — vertical list: bold type + separator + stages, exactly like Nimbus */}
+      {/* Body — show stages only */}
       <div className="bm-pcard-body">
         {builds.length === 0 ? (
           <p className="bm-pcard-empty">No build configs yet — click "Edit Builds" to add.</p>
         ) : (
-          Object.entries(byType).map(([type, configs]) => {
-            const hasMLB = configs.some(cfg => boardOf(cfg) === 'MMAIN')
-            return (
-              <div key={type} className="bm-pcard-group">
-                <div className="bm-pcard-type-header">{type}</div>
-                <div className="bm-pcard-stage">FATP</div>
-                {hasMLB && <div className="bm-pcard-stage">MLB (SMT)</div>}
-              </div>
-            )
-          })
+          <>
+            <div className="bm-pcard-stage">FATP</div>
+            {builds.some(b => boardOf(b.Config) === 'MMAIN') && (
+              <div className="bm-pcard-stage">MLB (SMT)</div>
+            )}
+          </>
         )}
       </div>
     </div>
