@@ -2799,6 +2799,63 @@
   color: #475569;
   font-weight: 400;
 }
+.bm-pcard-stage-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bm-pcard-stage-pencil {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.bm-pcard-stage-pencil:hover { color: #475569; }
+.bm-pcard-stage-del {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.bm-pcard-stage-del:hover { color: #ef4444; }
+.bm-pcard-stage-input {
+  font-size: 13px;
+  color: #1e293b;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  padding: 2px 6px;
+  outline: none;
+  width: 140px;
+}
+.bm-pcard-add-build {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 0;
+  margin-top: 4px;
+  text-align: left;
+}
+.bm-pcard-add-build:hover { text-decoration: underline; }
+.bm-pcard-done-btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 7px;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bm-pcard-done-btn:hover { background: #1e40af; }
 .bm-pcard-more { font-size: 11px; color: #94a3b8; }
 
 .bm-pcard-footer {

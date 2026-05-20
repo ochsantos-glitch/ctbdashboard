@@ -276,31 +276,47 @@ function AddConfigForm({ onAdd, onCancel, existingConfigs }) {
 }
 
 // ── Project Card ──────────────────────────────────────────────────────────────
-function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename }) {
-  const [renaming,   setRenaming]   = useState(false)
-  const [nameDraft,  setNameDraft]  = useState(project.name)
-  const [showMenu,   setShowMenu]   = useState(false)
+const DEFAULT_STAGES = ['FATP', 'MLB (SMT1)', 'MLB (SMT2)']
 
-  const totalQty    = builds.reduce((s, b) => s + (Number(b.Quantity) || 0), 0)
-  const alertCount  = alerts.filter(a => builds.some(b => b.Config === a.config)).length
-  const hasDanger   = alerts.filter(a => builds.some(b => b.Config === a.config)).some(a => a.type === 'danger')
-  const completed   = builds.filter(b => b.Status === 'Completed').length
+function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename, onUpdateStages }) {
+  const [renaming,       setRenaming]       = useState(false)
+  const [nameDraft,      setNameDraft]      = useState(project.name)
+  const [showMenu,       setShowMenu]       = useState(false)
+  const [editing,        setEditing]        = useState(false)
+  const [editingIdx,     setEditingIdx]     = useState(null)
+  const [stageDraft,     setStageDraft]     = useState('')
 
-  // Group by Type for card body
-  const byType = {}
-  builds.forEach(b => {
-    if (!byType[b.Type]) byType[b.Type] = []
-    byType[b.Type].push(b.Config)
-  })
+  const stages = project.stages ?? DEFAULT_STAGES
 
   function saveName() {
     if (nameDraft.trim()) onRename(nameDraft.trim())
     setRenaming(false)
   }
 
+  function startEditStage(idx) {
+    setEditingIdx(idx)
+    setStageDraft(stages[idx])
+  }
+
+  function saveStage() {
+    if (editingIdx === null) return
+    onUpdateStages(stages.map((s, i) => i === editingIdx ? (stageDraft.trim() || s) : s))
+    setEditingIdx(null)
+  }
+
+  function deleteStage(idx) {
+    onUpdateStages(stages.filter((_, i) => i !== idx))
+  }
+
+  function addStage() {
+    const next = [...stages, 'New Stage']
+    onUpdateStages(next)
+    setEditingIdx(next.length - 1)
+    setStageDraft('New Stage')
+  }
+
   return (
     <div className="bm-pcard">
-      {/* Header — matches Nimbus: name left, buttons right */}
       <div className="bm-pcard-header">
         {renaming ? (
           <input className="bm-pcard-name-input" value={nameDraft} autoFocus
@@ -318,34 +334,53 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
           </button>
           <button className="bm-pcard-icon-btn" title="Favorite">★</button>
           <button className="bm-pcard-icon-btn" title="Message">✉</button>
-          <button className="bm-pcard-icon-btn" title="More">▾</button>
           <div className="bm-pcard-divider" />
-          <button className="bm-pcard-edit-btn" onClick={onEditBuilds}>✎ Edit Builds</button>
-          <div className="bm-pcard-options-wrap" style={{ position: 'relative' }}>
-            <button className="bm-pcard-options-btn" onClick={() => setShowMenu(v => !v)}>
-              Project Options ▾
-            </button>
-            {showMenu && (
-              <div className="bm-pcard-dropdown" onMouseLeave={() => setShowMenu(false)}>
-                <div className="bm-pcard-menu-item" onClick={() => { setRenaming(true); setShowMenu(false) }}>✎ Rename</div>
-                <div className="bm-pcard-menu-item bm-pcard-menu-danger" onClick={() => { setShowMenu(false); onDelete() }}>🗑 Delete</div>
+          {editing ? (
+            <button className="bm-pcard-done-btn" onClick={() => { setEditing(false); setEditingIdx(null) }}>✓ Done</button>
+          ) : (
+            <>
+              <button className="bm-pcard-edit-btn" onClick={onEditBuilds}>✎ Edit Builds</button>
+              <div className="bm-pcard-options-wrap" style={{ position: 'relative' }}>
+                <button className="bm-pcard-options-btn" onClick={() => setShowMenu(v => !v)}>Project Options ▾</button>
+                {showMenu && (
+                  <div className="bm-pcard-dropdown" onMouseLeave={() => setShowMenu(false)}>
+                    <div className="bm-pcard-menu-item" onClick={() => { setRenaming(true); setShowMenu(false) }}>✎ Rename</div>
+                    <div className="bm-pcard-menu-item" onClick={() => { setEditing(true); setShowMenu(false) }}>⚙ Edit Stages</div>
+                    <div className="bm-pcard-menu-item bm-pcard-menu-danger" onClick={() => { setShowMenu(false); onDelete() }}>🗑 Delete</div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Body — stages left-aligned */}
       <div className="bm-pcard-body">
-        {builds.length === 0 ? (
-          <p className="bm-pcard-empty">No build configs yet — click "Edit Builds" to add.</p>
-        ) : (
-          <div className="bm-pcard-stages">
-            <div className="bm-pcard-stage">FATP</div>
-            <div className="bm-pcard-stage">MLB (SMT1)</div>
-            <div className="bm-pcard-stage">MLB (SMT2)</div>
-          </div>
-        )}
+        <div className="bm-pcard-stages">
+          {stages.map((stage, idx) => (
+            <div key={idx} className="bm-pcard-stage-row">
+              {editing && editingIdx === idx ? (
+                <input className="bm-pcard-stage-input" value={stageDraft} autoFocus
+                  onChange={e => setStageDraft(e.target.value)}
+                  onBlur={saveStage}
+                  onKeyDown={e => { if (e.key === 'Enter') saveStage(); if (e.key === 'Escape') setEditingIdx(null) }} />
+              ) : (
+                <>
+                  <span className="bm-pcard-stage">{stage}</span>
+                  {editing && (
+                    <>
+                      <button className="bm-pcard-stage-pencil" onClick={() => startEditStage(idx)} title="Rename">✎</button>
+                      <button className="bm-pcard-stage-del" onClick={() => deleteStage(idx)} title="Remove">✕</button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+          {editing && (
+            <button className="bm-pcard-add-build" onClick={addStage}>+ Add Build...</button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -375,6 +410,10 @@ function ProjectLanding({ projects, setProjects, builds, alerts, activeProjectId
 
   function renameProject(id, name) {
     setProjects(prev => prev.map(p => p.id === id ? { ...p, name } : p))
+  }
+
+  function updateProjectStages(id, stages) {
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, stages } : p))
   }
 
   const filtered = projects.filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()))
@@ -426,6 +465,7 @@ function ProjectLanding({ projects, setProjects, builds, alerts, activeProjectId
             onEditBuilds={() => { setActiveProjectId(p.id); onEditBuilds() }}
             onDelete={() => deleteProject(p.id)}
             onRename={name => renameProject(p.id, name)}
+            onUpdateStages={stages => updateProjectStages(p.id, stages)}
           />
         ))}
       </div>
