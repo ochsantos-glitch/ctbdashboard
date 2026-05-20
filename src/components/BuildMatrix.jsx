@@ -311,6 +311,7 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
           <h3 className="bm-pcard-name">{project.name}</h3>
         )}
         <div className="bm-pcard-actions">
+          <button className="bm-pcard-icon-btn" title="Refresh" onClick={() => window.location.reload()}>↻</button>
           <button className="bm-pcard-icon-btn" title="Favorite">★</button>
           <button className="bm-pcard-icon-btn" title="Message">✉</button>
           <button className="bm-pcard-icon-btn" title="More">▾</button>
@@ -330,17 +331,17 @@ function ProjectCard({ project, builds, alerts, onEditBuilds, onDelete, onRename
         </div>
       </div>
 
-      {/* Body — show stages only */}
+      {/* Body — stages left-aligned */}
       <div className="bm-pcard-body">
         {builds.length === 0 ? (
           <p className="bm-pcard-empty">No build configs yet — click "Edit Builds" to add.</p>
         ) : (
-          <>
+          <div className="bm-pcard-stages">
             <div className="bm-pcard-stage">FATP</div>
             {builds.some(b => boardOf(b.Config) === 'MMAIN') && (
               <div className="bm-pcard-stage">MLB (SMT)</div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

@@ -2770,11 +2770,16 @@
 .bm-pcard-body {
   padding: 14px 20px;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: flex-start;
   min-height: 60px;
 }
 .bm-pcard-empty { color: #94a3b8; font-size: 13px; margin: 0; }
+.bm-pcard-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
 .bm-pcard-group {
   display: flex;
   flex-direction: column;
