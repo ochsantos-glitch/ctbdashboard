@@ -11,7 +11,9 @@ import BuildMatrix from './components/BuildMatrix'
 import BOMExplorer from './components/BOMExplorer'
 import Inventory from './components/Inventory'
 import DevTrack from './components/DevTrack'
-import { calcAlerts } from './utils/alertEngine'
+import Materials from './components/Materials'
+import Allocation from './components/Allocation'
+import { calcAlerts, calcMaterialShortages } from './utils/alertEngine'
 
 const DEFAULT_PLAN = {
   smt: [
@@ -37,7 +39,14 @@ export function makeProject(name) {
 }
 
 function App() {
-  const [activePage, setActivePage] = useState('dashboard')
+  const [activePage, setActivePage] = useState(() => {
+    const p = new URLSearchParams(window.location.search)
+    return p.get('page') === 'devtrack' ? 'devtrack' : 'dashboard'
+  })
+  const [pendingAction] = useState(() => {
+    const p = new URLSearchParams(window.location.search)
+    return { action: p.get('action'), id: p.get('id') }
+  })
   const [bom,    setBom]    = useState(initialBom)
   const [builds, setBuilds] = useState(() => {
     try {
@@ -60,9 +69,24 @@ function App() {
     () => localStorage.getItem('dashboard-activeId') ?? null
   )
 
+  const [materials, setMaterials] = useState(() => {
+    try { const s = localStorage.getItem('bm-materials'); return s ? JSON.parse(s) : [] } catch { return [] }
+  })
+  const [allocations, setAllocations] = useState(() => {
+    try { const s = localStorage.getItem('bm-allocations'); return s ? JSON.parse(s) : [] } catch { return [] }
+  })
+
   useEffect(() => {
     localStorage.setItem('dashboard-builds', JSON.stringify(builds))
   }, [builds])
+
+  useEffect(() => {
+    localStorage.setItem('bm-materials', JSON.stringify(materials))
+  }, [materials])
+
+  useEffect(() => {
+    localStorage.setItem('bm-allocations', JSON.stringify(allocations))
+  }, [allocations])
 
   useEffect(() => {
     localStorage.setItem('dashboard-projects', JSON.stringify(projects))
@@ -81,7 +105,10 @@ function App() {
     setProjects(prev => prev.map(p => p.id === resolvedActiveId ? { ...p, budget: v } : p))
   }
 
-  const alerts      = useMemo(() => calcAlerts(bom, builds, budget), [bom, builds, budget])
+  const alerts      = useMemo(() => [
+    ...calcAlerts(bom, builds, budget),
+    ...calcMaterialShortages(materials, builds, allocations),
+  ], [bom, builds, budget, materials, allocations])
   const alertCount  = alerts.length
   const dangerCount = alerts.filter(a => a.type === 'danger').length
 
@@ -97,6 +124,8 @@ function App() {
     { id: 'orders',      label: 'Orders' },
     { id: 'inventory',   label: 'Inventory' },
     { id: 'devtrack',    label: 'DevTrack' },
+    { id: 'materials',   label: 'Materials' },
+    { id: 'allocation',  label: 'Allocation' },
     { id: 'reports',     label: 'Reports' },
     { id: 'settings',    label: 'Settings' },
   ]
@@ -130,17 +159,33 @@ function App() {
         return (
           <BuildMatrix
             builds={builds} setBuilds={setBuilds}
-            bom={bom}
+            bom={bom} setBom={setBom}
             alerts={alerts}
             budget={budget} setBudget={setActiveBudget}
             projects={projects}
             activeProjectId={resolvedActiveId} setActiveProjectId={setActiveProjectId}
+            allocations={allocations}
           />
         )
       case 'inventory':
         return <Inventory />
       case 'devtrack':
-        return <DevTrack />
+        return <DevTrack pendingAction={pendingAction} />
+      case 'materials':
+        return (
+          <Materials
+            materials={materials} setMaterials={setMaterials}
+            builds={builds}
+            allocations={allocations}
+          />
+        )
+      case 'allocation':
+        return (
+          <Allocation
+            allocations={allocations} setAllocations={setAllocations}
+            builds={builds}
+          />
+        )
       case 'alerts':
         return <AlertsPage alerts={alerts} onNavigate={setActivePage} />
       default:
@@ -287,4 +332,47 @@ function AlertsPage({ alerts, onNavigate }) {
   )
 }
 
-export default App
+const DASHBOARD_PASSWORD = 'hodded-guxNuf-7dibtu'
+
+function PasswordGate({ onUnlock }) {
+  const [input, setInput] = useState('')
+  const [error, setError] = useState(false)
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    if (input === DASHBOARD_PASSWORD) {
+      sessionStorage.setItem('sc-auth', '1')
+      onUnlock()
+    } else {
+      setError(true)
+      setInput('')
+    }
+  }
+
+  return (
+    <div className="pw-gate">
+      <div className="pw-box">
+        <h2 className="pw-title">SC Dashboard</h2>
+        <p className="pw-sub">Enter password to continue</p>
+        <form onSubmit={handleSubmit}>
+          <input
+            className="pw-input"
+            type="password"
+            placeholder="Password"
+            value={input}
+            onChange={e => { setInput(e.target.value); setError(false) }}
+            autoFocus
+          />
+          {error && <div className="pw-error">Incorrect password. Try again.</div>}
+          <button className="pw-btn" type="submit">Unlock</button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default function AppWithAuth() {
+  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem('sc-auth') === '1')
+  if (!unlocked) return <PasswordGate onUnlock={() => setUnlocked(true)} />
+  return <App />
+}
