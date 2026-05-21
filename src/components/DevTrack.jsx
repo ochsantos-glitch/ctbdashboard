@@ -172,6 +172,8 @@ export default function DevTrack({ pendingAction = {} }) {
   const [transferEmail,    setTransferEmail]    = useState('')
   const [transferSending,  setTransferSending]  = useState(false)
   const [historyModal,     setHistoryModal]     = useState(null)
+  const [reviewModal,      setReviewModal]      = useState(null)
+  const [rejectReason,     setRejectReason]     = useState('')
 
   useEffect(() => { localStorage.setItem('devtrack-cols',    JSON.stringify(columns))       }, [columns])
   useEffect(() => { localStorage.setItem('devtrack-items',   JSON.stringify(items))         }, [items])
@@ -180,10 +182,23 @@ export default function DevTrack({ pendingAction = {} }) {
   useEffect(() => {
     const { action, id } = pendingAction
     if (!action || !id) return
-    const newStatus = action === 'accept' ? 'Accepted' : 'Rejected'
-    setItems(prev => prev.map(it => it.id === id ? { ...it, status: newStatus } : it))
-    showToast(`Device ${newStatus} successfully.`)
-    window.history.replaceState({}, '', window.location.pathname)
+    if (action === 'accept') {
+      setItems(prev => prev.map(it => {
+        if (it.id !== id) return it
+        const outcomeEntry = { date: new Date().toISOString(), type: 'Accepted', byEmail: it.email, reason: '' }
+        return { ...it, status: 'Accepted', transferHistory: [...(it.transferHistory || []), outcomeEntry] }
+      }))
+      showToast('Device Accepted successfully.')
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (action === 'reject') {
+      // Show rejection reason modal before finalizing
+      setItems(prev => {
+        const item = prev.find(it => it.id === id)
+        if (item) setReviewModal({ ...item, _pendingReject: true })
+        return prev
+      })
+      window.history.replaceState({}, '', window.location.pathname)
+    }
   }, [])
 
   const projects  = ['All', ...Array.from(new Set(items.map(i => i.project).filter(Boolean))).sort()]
@@ -344,9 +359,11 @@ export default function DevTrack({ pendingAction = {} }) {
     const item = transferModal
     const historyEntry = {
       date:      new Date().toISOString(),
+      type:      'Transfer',
       fromEmail: item.email || '—',
       toEmail:   transferEmail.trim(),
       status:    item.status,
+      reason:    '',
     }
     const updatedItem = {
       ...item,
@@ -379,6 +396,19 @@ export default function DevTrack({ pendingAction = {} }) {
     setTransferSending(false)
     setTransferModal(null)
     setTransferEmail('')
+  }
+
+  function confirmReject() {
+    const item = reviewModal
+    if (!item) return
+    const outcomeEntry = { date: new Date().toISOString(), type: 'Rejected', byEmail: item.email, reason: rejectReason.trim() }
+    setItems(prev => prev.map(it => {
+      if (it.id !== item.id) return it
+      return { ...it, status: 'Rejected', transferHistory: [...(it.transferHistory || []), outcomeEntry] }
+    }))
+    showToast('Device Rejected.')
+    setReviewModal(null)
+    setRejectReason('')
   }
 
   async function handleNotify() {
@@ -480,31 +510,72 @@ export default function DevTrack({ pendingAction = {} }) {
       {/* ── History Modal ─────────────────────────────────────────── */}
       {historyModal && (
         <div className="dt-modal-overlay" onClick={() => setHistoryModal(null)}>
-          <div className="dt-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+          <div className="dt-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 700 }}>
             <h3 className="dt-modal-title">Transfer History</h3>
-            <p className="dt-modal-sub">SN: <strong>{historyModal.sn || '—'}</strong></p>
+            <p className="dt-modal-sub">SN: <strong>{historyModal.sn || '—'}</strong> &nbsp;|&nbsp; IMEI: <strong>{historyModal.imei || '—'}</strong></p>
             <table className="build-table inv-table" style={{ marginTop: 8 }}>
               <thead>
                 <tr>
                   <th>Date</th>
+                  <th>Event</th>
                   <th>From</th>
-                  <th>To</th>
-                  <th>Status at Transfer</th>
+                  <th>To / By</th>
+                  <th>Reason</th>
                 </tr>
               </thead>
               <tbody>
-                {(historyModal.transferHistory || []).map((h, i) => (
+                {(historyModal.transferHistory || []).length === 0 ? (
+                  <tr><td colSpan={5} className="inv-empty">No history yet.</td></tr>
+                ) : (historyModal.transferHistory || []).map((h, i) => (
                   <tr key={i} className="inv-data-row">
                     <td style={{ whiteSpace: 'nowrap' }}>{new Date(h.date).toLocaleString()}</td>
-                    <td>{h.fromEmail}</td>
-                    <td>{h.toEmail}</td>
-                    <td>{h.status}</td>
+                    <td>
+                      <span className={`status-badge ${h.type === 'Accepted' ? 'status-completed' : h.type === 'Rejected' ? 'dt-status-blocked' : 'status-on-going'}`}>
+                        {h.type || 'Transfer'}
+                      </span>
+                    </td>
+                    <td>{h.fromEmail || '—'}</td>
+                    <td>{h.toEmail || h.byEmail || '—'}</td>
+                    <td style={{ color: '#64748b', fontStyle: h.reason ? 'normal' : 'italic' }}>{h.reason || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div className="dt-modal-actions" style={{ marginTop: 16 }}>
               <button className="inv-cancel-btn" onClick={() => setHistoryModal(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Rejection Reason Modal ────────────────────────────────── */}
+      {reviewModal?._pendingReject && (
+        <div className="dt-modal-overlay">
+          <div className="dt-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="dt-modal-title">Reject Device Transfer</h3>
+            <p className="dt-modal-sub">SN: <strong>{reviewModal.sn || '—'}</strong> &nbsp;|&nbsp; IMEI: <strong>{reviewModal.imei || '—'}</strong></p>
+            <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 14px', marginBottom: 14 }}>
+              {columns.filter(c => ['project','config','cmSite','destination'].includes(c.key)).map(c => (
+                <div key={c.key} style={{ display: 'flex', gap: 8, fontSize: 13, marginBottom: 4 }}>
+                  <span style={{ color: '#94a3b8', minWidth: 100 }}>{c.label}:</span>
+                  <strong>{reviewModal[c.key] || '—'}</strong>
+                </div>
+              ))}
+            </div>
+            <label className="dt-modal-label">Reason for rejection <span style={{ color: '#94a3b8' }}>(optional)</span></label>
+            <textarea
+              className="inv-form-input"
+              style={{ width: '100%', minHeight: 80, resize: 'vertical', marginBottom: 16 }}
+              placeholder="e.g. Device not received, wrong IMEI, duplicate shipment…"
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              autoFocus
+            />
+            <div className="dt-modal-actions">
+              <button className="inv-save-btn" style={{ background: '#ef4444' }} onClick={confirmReject}>
+                ✕ Confirm Rejection
+              </button>
+              <button className="inv-cancel-btn" onClick={() => { setReviewModal(null); setRejectReason('') }}>Cancel</button>
             </div>
           </div>
         </div>
