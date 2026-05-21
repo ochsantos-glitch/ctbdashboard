@@ -230,12 +230,18 @@ function App() {
           <button
             className="btn-sidebar-export"
             onClick={() => {
+              const devtrackItems   = (() => { try { return JSON.parse(localStorage.getItem('devtrack-items'))   || [] } catch { return [] } })()
+              const devtrackCols    = (() => { try { return JSON.parse(localStorage.getItem('devtrack-cols'))    || [] } catch { return [] } })()
+              const devtrackHistory = (() => { try { return JSON.parse(localStorage.getItem('devtrack-history')) || [] } catch { return [] } })()
               const payload = {
                 exportedAt: new Date().toISOString(),
                 projects,
                 builds,
                 bom,
                 alerts,
+                devtrackItems,
+                devtrackCols,
+                devtrackHistory,
               }
               const url = URL.createObjectURL(
                 new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
@@ -263,9 +269,12 @@ function App() {
                 reader.onload = evt => {
                   try {
                     const data = JSON.parse(evt.target.result)
-                    if (data.bom)      setBom(data.bom)
-                    if (data.builds)   setBuilds(data.builds)
-                    if (data.projects) setProjects(data.projects)
+                    if (data.bom)             setBom(data.bom)
+                    if (data.builds)          setBuilds(data.builds)
+                    if (data.projects)        setProjects(data.projects)
+                    if (data.devtrackItems)   localStorage.setItem('devtrack-items',   JSON.stringify(data.devtrackItems))
+                    if (data.devtrackCols)    localStorage.setItem('devtrack-cols',    JSON.stringify(data.devtrackCols))
+                    if (data.devtrackHistory) localStorage.setItem('devtrack-history', JSON.stringify(data.devtrackHistory))
                   } catch {
                     alert('Invalid JSON file — could not import.')
                   }
