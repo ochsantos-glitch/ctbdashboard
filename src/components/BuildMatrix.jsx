@@ -233,38 +233,34 @@ function EditModal({ config, bom, onSave, onClose }) {
 
 // ── Add Config Form ───────────────────────────────────────────────────────────
 function AddConfigForm({ onAdd, onCancel, existingConfigs }) {
-  const [useCustom, setUseCustom] = useState(false)
-  const [board, setBoard] = useState(BOARDS[0])
-  const [suffix, setSuffix] = useState('')
-  const [customName, setCustomName] = useState('')
-  const [type, setType] = useState('POR')
-  const [status, setStatus] = useState('Not Started')
-  const [quantity, setQuantity] = useState(0)
-  const [buildDate, setBuildDate] = useState('')
-  const configName = useCustom ? customName.trim().toUpperCase() : (suffix.trim() ? `${board}-${suffix.trim().toUpperCase()}` : '')
-  const duplicate = existingConfigs.includes(configName)
-  const valid = !!configName && !duplicate
+  const [configName, setConfigName] = useState('')
+  const [type,       setType]       = useState('POR')
+  const [status,     setStatus]     = useState('Not Started')
+  const [quantity,   setQuantity]   = useState(0)
+  const [buildDate,  setBuildDate]  = useState('')
+
+  const name      = configName.trim().toUpperCase()
+  const duplicate = existingConfigs.includes(name)
+  const valid     = !!name && !duplicate
+
   function handleAdd() {
     if (!valid) return
-    onAdd({ Config: configName, Type: type, 'SMT Modem': '✓', 'SMT Antenna': '✓', FATP: '✓', Status: status, Quantity: quantity, 'Build Date': buildDate })
-    setSuffix(''); setCustomName(''); setQuantity(0); setBuildDate('')
+    onAdd({ Config: name, Type: type, Status: status, Quantity: quantity, 'Build Date': buildDate })
+    setConfigName(''); setQuantity(0); setBuildDate('')
   }
+
   return (
     <div className="add-config-form">
       <h3>New Configuration</h3>
       <div className="add-form-row">
-        <div className="add-form-group" style={{ alignSelf: 'flex-end', marginBottom: 4 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-            <input type="checkbox" checked={useCustom} onChange={e => setUseCustom(e.target.checked)} /> Custom name
-          </label>
+        <div className="add-form-group">
+          <label>Config Name</label>
+          <input type="text" placeholder="e.g. E2CF-LBU1" value={configName}
+            onChange={e => setConfigName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            className="search-input" style={{ width: 180 }} autoFocus />
+          {duplicate && <span className="form-error"> already exists</span>}
         </div>
-        {useCustom ? (
-          <div className="add-form-group"><label>Config Name</label><input type="text" placeholder="e.g. E2CMB-LBU1" value={customName} onChange={e => setCustomName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} className="search-input" style={{ width: 180 }} autoFocus /></div>
-        ) : (<>
-          <div className="add-form-group"><label>Board</label><select value={board} onChange={e => setBoard(e.target.value)} className="filter-select">{BOARDS.map(b => <option key={b}>{b}</option>)}</select></div>
-          <div className="add-form-group"><label>Suffix</label><input type="text" placeholder="e.g. DIAG4" value={suffix} onChange={e => setSuffix(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} className="search-input" style={{ width: 110 }} /></div>
-        </>)}
-        <div className="add-form-preview"><strong>{configName || '…'}</strong>{duplicate && <span className="form-error"> already exists</span>}</div>
         <div className="add-form-group"><label>Type</label><select value={type} onChange={e => setType(e.target.value)} className="filter-select">{TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
         <div className="add-form-group"><label>Status</label><select value={status} onChange={e => setStatus(e.target.value)} className="filter-select"><option>Not Started</option><option>On-going</option><option>Completed</option></select></div>
         <div className="add-form-group"><label>Qty</label><input type="number" value={quantity} min={0} onChange={e => setQuantity(Number(e.target.value))} className="search-input" style={{ width: 80 }} /></div>
