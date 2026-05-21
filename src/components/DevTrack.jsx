@@ -758,10 +758,8 @@ export default function DevTrack({ pendingAction = {} }) {
                             onClick={() => handleAutoTransfer(it)}
                             disabled={transferSending}
                             title={it.email ? `Notify ${it.email}` : 'Set recipient & notify'}>↗</button>
-                          {(it.transferHistory?.length > 0) && (
-                            <button className="inv-save-btn" style={{ background: '#64748b' }}
-                              onClick={() => setHistoryModal(it)} title="Transfer History">📋</button>
-                          )}
+                          <button className="inv-save-btn" style={{ background: '#64748b' }}
+                            onClick={() => setHistoryModal(it)} title="Transfer History">📋</button>
                           {it.status !== 'Accepted' && (
                             <button className="inv-delete-btn" onClick={() => deleteItem(it.id)} title="Delete">🗑</button>
                           )}
