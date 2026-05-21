@@ -354,48 +354,61 @@ export default function DevTrack({ pendingAction = {} }) {
     setSearch('')
   }
 
-  async function handleTransfer() {
-    if (!transferEmail.trim()) return
-    const item = transferModal
+  async function sendTransferNotification(item, toEmail) {
     const historyEntry = {
       date:      new Date().toISOString(),
       type:      'Transfer',
       fromEmail: item.email || '—',
-      toEmail:   transferEmail.trim(),
+      toEmail:   toEmail,
       status:    item.status,
       reason:    '',
     }
     const updatedItem = {
       ...item,
-      email:           transferEmail.trim(),
+      email:           toEmail,
       status:          'Not Started',
       transferHistory: [...(item.transferHistory || []), historyEntry],
     }
     setItems(prev => prev.map(it => it.id === item.id ? updatedItem : it))
 
-    setTransferSending(true)
-    const baseUrl      = window.location.origin
-    const acceptUrl    = `${baseUrl}?page=devtrack&action=accept&id=${item.id}`
-    const rejectUrl    = `${baseUrl}?page=devtrack&action=reject&id=${item.id}`
-    const detailCols   = columns.filter(c => c.key !== 'email')
-    const details      = detailCols.map(c => `${c.label}: ${updatedItem[c.key] || '—'}`).join('\n')
+    const baseUrl    = window.location.origin
+    const acceptUrl  = `${baseUrl}?page=devtrack&action=accept&id=${item.id}`
+    const rejectUrl  = `${baseUrl}?page=devtrack&action=reject&id=${item.id}`
+    const detailCols = columns.filter(c => c.key !== 'email')
+    const details    = detailCols.map(c => `${c.label}: ${updatedItem[c.key] || '—'}`).join('\n')
 
     try {
       await emailjs.send(
         EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
-        { to_email: transferEmail.trim(), subject: 'Device Assignment Notification',
+        { to_email: toEmail, subject: 'Device Assignment Notification',
           message: details, dashboard_url: window.location.href,
           accept_url: acceptUrl, reject_url: rejectUrl },
         { publicKey: EMAILJS_PUBLIC_KEY }
       )
-      showToast('Device transferred and notification sent.')
+      showToast(`✓ Notification sent to ${toEmail}.`)
     } catch {
       showToast('Transferred — email notification failed. Check EmailJS config.', 'error')
     }
+  }
 
+  async function handleTransfer() {
+    if (!transferEmail.trim()) return
+    setTransferSending(true)
+    await sendTransferNotification(transferModal, transferEmail.trim())
     setTransferSending(false)
     setTransferModal(null)
     setTransferEmail('')
+  }
+
+  async function handleAutoTransfer(item) {
+    if (!item.email) {
+      setTransferModal(item)
+      setTransferEmail('')
+      return
+    }
+    setTransferSending(true)
+    await sendTransferNotification(item, item.email)
+    setTransferSending(false)
   }
 
   function confirmReject() {
@@ -742,7 +755,9 @@ export default function DevTrack({ pendingAction = {} }) {
                           <button className="inv-save-btn" style={{ background: '#3b82f6' }}
                             onClick={() => startEdit(it)} title="Edit">✎</button>
                           <button className="inv-save-btn" style={{ background: '#8b5cf6' }}
-                            onClick={() => { setTransferModal(it); setTransferEmail('') }} title="Transfer">↗</button>
+                            onClick={() => handleAutoTransfer(it)}
+                            disabled={transferSending}
+                            title={it.email ? `Notify ${it.email}` : 'Set recipient & notify'}>↗</button>
                           {(it.transferHistory?.length > 0) && (
                             <button className="inv-save-btn" style={{ background: '#64748b' }}
                               onClick={() => setHistoryModal(it)} title="Transfer History">📋</button>
