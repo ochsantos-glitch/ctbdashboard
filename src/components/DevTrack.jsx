@@ -174,10 +174,66 @@ export default function DevTrack({ pendingAction = {} }) {
   const [historyModal,     setHistoryModal]     = useState(null)
   const [reviewModal,      setReviewModal]      = useState(null)
   const [rejectReason,     setRejectReason]     = useState('')
+  const [myEmail,          setMyEmail]          = useState(() => localStorage.getItem('devtrack-my-email') || '')
+  const [editMyEmail,      setEditMyEmail]      = useState(false)
+  const [myEmailDraft,     setMyEmailDraft]     = useState('')
 
   useEffect(() => { localStorage.setItem('devtrack-cols',    JSON.stringify(columns))       }, [columns])
   useEffect(() => { localStorage.setItem('devtrack-items',   JSON.stringify(items))         }, [items])
   useEffect(() => { localStorage.setItem('devtrack-history', JSON.stringify(importHistory)) }, [importHistory])
+  useEffect(() => { localStorage.setItem('devtrack-my-email', myEmail)                      }, [myEmail])
+
+  // ── 2-day reminder check on load ─────────────────────────────────────────────
+  useEffect(() => {
+    const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000
+    const now = Date.now()
+    const pending = items.filter(it =>
+      it.email &&
+      it.status !== 'Accepted' &&
+      it.status !== 'Rejected' &&
+      it.notifiedAt &&
+      now - new Date(it.notifiedAt).getTime() >= TWO_DAYS_MS &&
+      (!it.lastReminderSentAt || now - new Date(it.lastReminderSentAt).getTime() >= TWO_DAYS_MS)
+    )
+    if (!pending.length) return
+
+    const baseUrl    = window.location.origin
+    const detailCols = columns.filter(c => c.key !== 'email')
+    const originatorEmail = localStorage.getItem('devtrack-my-email') || ''
+
+    async function sendReminders() {
+      let sent = 0
+      for (const item of pending) {
+        const details   = detailCols.map(c => `${c.label}: ${item[c.key] || '—'}`).join('\n')
+        const acceptUrl = `${baseUrl}?page=devtrack&action=accept&id=${item.id}`
+        const rejectUrl = `${baseUrl}?page=devtrack&action=reject&id=${item.id}`
+        const subject   = `Reminder: Device Assignment Pending — ${item.sn || item.imei || 'Device'}`
+        const message   = `This is a 2-day reminder. The following device is still awaiting your response:\n\n${details}`
+        try {
+          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
+            { to_email: item.email, subject, message, dashboard_url: window.location.href, accept_url: acceptUrl, reject_url: rejectUrl },
+            { publicKey: EMAILJS_PUBLIC_KEY })
+          if (originatorEmail && originatorEmail !== item.email) {
+            await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
+              { to_email: originatorEmail, subject: `[Originator Copy] ${subject}`,
+                message: `Recipient ${item.email} has not yet responded.\n\n${details}`,
+                dashboard_url: window.location.href, accept_url: acceptUrl, reject_url: rejectUrl },
+              { publicKey: EMAILJS_PUBLIC_KEY })
+          }
+          sent++
+        } catch {}
+      }
+      if (sent > 0) {
+        setItems(prev => prev.map(it =>
+          pending.some(p => p.id === it.id)
+            ? { ...it, lastReminderSentAt: new Date().toISOString() }
+            : it
+        ))
+        showToast(`⏰ ${sent} reminder${sent !== 1 ? 's' : ''} sent for pending devices (2-day follow-up).`)
+      }
+    }
+    sendReminders()
+  }, [])
 
   useEffect(() => {
     const { action, id } = pendingAction
@@ -369,6 +425,8 @@ export default function DevTrack({ pendingAction = {} }) {
       ...item,
       email:           toEmail,
       status:          'Not Started',
+      notifiedAt:      new Date().toISOString(),
+      lastReminderSentAt: null,
       transferHistory: [...(item.transferHistory || []), historyEntry],
     }
     setItems(prev => prev.map(it => it.id === item.id ? updatedItem : it))
@@ -444,6 +502,9 @@ export default function DevTrack({ pendingAction = {} }) {
             accept_url: acceptUrl, reject_url: rejectUrl },
           { publicKey: EMAILJS_PUBLIC_KEY }
         )
+        setItems(prev => prev.map(it => it.id === item.id
+          ? { ...it, notifiedAt: new Date().toISOString(), lastReminderSentAt: null }
+          : it))
         sent++
       } catch {}
     }
@@ -644,6 +705,31 @@ export default function DevTrack({ pendingAction = {} }) {
             <div className="stat-label">Completed</div>
           </div>
         </>}
+      </div>
+
+      {/* ── Originator email (for reminders) ─────────────────────── */}
+      <div className="dt-my-email-bar">
+        <span className="dt-my-email-label">⏰ Reminder originator email:</span>
+        {editMyEmail ? (
+          <>
+            <input className="inv-form-input" type="email" placeholder="your@email.com"
+              value={myEmailDraft} onChange={e => setMyEmailDraft(e.target.value)}
+              autoFocus style={{ width: 220 }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { setMyEmail(myEmailDraft.trim()); setEditMyEmail(false) }
+                if (e.key === 'Escape') setEditMyEmail(false)
+              }} />
+            <button className="inv-save-btn" onClick={() => { setMyEmail(myEmailDraft.trim()); setEditMyEmail(false) }}>✓</button>
+            <button className="inv-cancel-btn" onClick={() => setEditMyEmail(false)}>×</button>
+          </>
+        ) : (
+          <>
+            <span className="dt-my-email-val">{myEmail || <em style={{ color: '#94a3b8' }}>not set</em>}</span>
+            <button className="bm-pcard-stage-pencil" style={{ fontSize: 13 }}
+              onClick={() => { setMyEmailDraft(myEmail); setEditMyEmail(true) }}>✎</button>
+          </>
+        )}
+        <span className="dt-my-email-hint">— you'll receive a copy when a 2-day reminder fires</span>
       </div>
 
       {/* ── Toolbar ───────────────────────────────────────────────── */}
