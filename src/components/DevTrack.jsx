@@ -328,11 +328,13 @@ export default function DevTrack({ pendingAction = {} }) {
           showToast(`✓ ${unique.length} row${unique.length !== 1 ? 's' : ''} imported — ${result.columns.length} columns captured.`)
         }
         warnMissingFields(unique)
+        autoNotifyImported(unique, result.columns)
       } else {
         setColumns(result.columns)
         setItems(result.items)
         showToast(`✓ ${result.items.length} row${result.items.length !== 1 ? 's' : ''} imported — ${result.columns.length} columns captured.`)
         warnMissingFields(result.items)
+        autoNotifyImported(result.items, result.columns)
       }
       setFilterProject('All'); setFilterSite('All'); setFilterStatus('All'); setSearch('')
       setImportHistory(prev => [{
@@ -424,10 +426,34 @@ export default function DevTrack({ pendingAction = {} }) {
     setRejectReason('')
   }
 
+  async function autoNotifyImported(importedItems, importedCols) {
+    const withEmail = importedItems.filter(i => i.email)
+    if (!withEmail.length) return
+    const detailCols = importedCols.filter(c => c.key !== 'email')
+    const baseUrl = window.location.origin
+    let sent = 0
+    for (const item of withEmail) {
+      const details    = detailCols.map(c => `${c.label}: ${item[c.key] || '—'}`).join('\n')
+      const acceptUrl  = `${baseUrl}?page=devtrack&action=accept&id=${item.id}`
+      const rejectUrl  = `${baseUrl}?page=devtrack&action=reject&id=${item.id}`
+      try {
+        await emailjs.send(
+          EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
+          { to_email: item.email, subject: 'Device Assignment Notification',
+            message: details, dashboard_url: window.location.href,
+            accept_url: acceptUrl, reject_url: rejectUrl },
+          { publicKey: EMAILJS_PUBLIC_KEY }
+        )
+        sent++
+      } catch {}
+    }
+    if (sent > 0) showToast(`✓ ${sent} notification${sent !== 1 ? 's' : ''} auto-sent to recipients.`)
+  }
+
   async function handleNotify() {
     const detailCols = columns.filter(c => c.key !== 'email')
-    const withEmail  = items.filter(i => i.email)
-    if (!withEmail.length) { showToast('No email addresses found in the data.', 'error'); return }
+    const withEmail  = items.filter(i => i.email && i.status !== 'Accepted' && i.status !== 'Rejected')
+    if (!withEmail.length) { showToast('No pending recipients to notify (all have already accepted or rejected).', 'error'); return }
 
     if (EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
       showToast('EmailJS not configured yet — please add your Service ID, Template ID, and Public Key.', 'error')
