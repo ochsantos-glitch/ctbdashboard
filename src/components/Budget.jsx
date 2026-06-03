@@ -12,8 +12,8 @@ function getBoardPrefix(configName) {
 export default function Budget({ bom, builds, projects, setProjects, activeProjectId, setActiveProjectId }) {
   const [search, setSearch] = useState('')
 
-  const resolvedId       = activeProjectId ?? projects[0]?.id
-  const active           = projects.find(p => p.id === resolvedId) ?? projects[0]
+  const resolvedId = activeProjectId ?? null
+  const active     = resolvedId ? projects.find(p => p.id === resolvedId) ?? null : null
   const budget           = active?.budget ?? 12000
   const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
 
@@ -77,8 +77,9 @@ export default function Budget({ bom, builds, projects, setProjects, activeProje
             <select
               className="proj-select"
               value={resolvedId ?? ''}
-              onChange={e => { setActiveProjectId(e.target.value); setSearch('') }}
+              onChange={e => { setActiveProjectId(e.target.value || null); setSearch('') }}
             >
+              <option value=''>— Select a project —</option>
               {filteredProjects.length > 0
                 ? filteredProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
                 : <option disabled>No matches</option>
@@ -96,6 +97,9 @@ export default function Budget({ bom, builds, projects, setProjects, activeProje
           </div>
         )}
       </div>
+
+      {!active && <p style={{ color: '#94a3b8', marginTop: 32, fontSize: 15 }}>Select a project to view its budget.</p>}
+      {active && <>
 
       {/* ── Summary cards ────────────────────────────────────────────── */}
       <div className="stats-row">
@@ -214,6 +218,7 @@ export default function Budget({ bom, builds, projects, setProjects, activeProje
           </tfoot>
         </table>
       </div>
+      </>}
     </div>
   )
 }

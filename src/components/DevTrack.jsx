@@ -5,15 +5,16 @@ const EMAILJS_SERVICE_ID  = 'service_gvib8r2'
 const EMAILJS_TEMPLATE_ID = 'template_m2ws09m'
 const EMAILJS_PUBLIC_KEY  = 'ORvGP0xa6uEimVFBu'
 
-const STATUSES = ['Not Started', 'In Progress', 'Blocked', 'Completed', 'Accepted', 'Rejected']
+const STATUSES = ['Not Started', 'In Progress', 'Blocked', 'Completed', 'Pending Transfer', 'Accepted', 'Rejected']
 
 const STATUS_CLASS = {
-  'Not Started': 'status-not-started',
-  'In Progress': 'status-on-going',
-  'Blocked':     'dt-status-blocked',
-  'Completed':   'status-completed',
-  'Accepted':    'status-completed',
-  'Rejected':    'dt-status-blocked',
+  'Not Started':      'status-not-started',
+  'In Progress':      'status-on-going',
+  'Blocked':          'dt-status-blocked',
+  'Completed':        'status-completed',
+  'Pending Transfer': 'status-on-going',
+  'Accepted':         'status-completed',
+  'Rejected':         'dt-status-blocked',
 }
 
 // Known column aliases — used only to normalize keys, NOT to limit which columns appear
@@ -156,7 +157,7 @@ export default function DevTrack({ pendingAction = {} }) {
   const [form,          setForm]          = useState({})
   const [adding,        setAdding]        = useState(false)
   const [search,        setSearch]        = useState('')
-  const [filterProject, setFilterProject] = useState('All')
+  const [filterProject, setFilterProject] = useState('')
   const [filterSite,    setFilterSite]    = useState('All')
   const [filterStatus,  setFilterStatus]  = useState('All')
   const [sortCol,       setSortCol]       = useState('createdAt')
@@ -170,13 +171,16 @@ export default function DevTrack({ pendingAction = {} }) {
   const [showHistory,      setShowHistory]      = useState(false)
   const [transferModal,    setTransferModal]    = useState(null)
   const [transferEmail,    setTransferEmail]    = useState('')
+  const [transferReason,   setTransferReason]   = useState('')
   const [transferSending,  setTransferSending]  = useState(false)
   const [historyModal,     setHistoryModal]     = useState(null)
-  const [reviewModal,      setReviewModal]      = useState(null)
-  const [rejectReason,     setRejectReason]     = useState('')
-  const [myEmail,          setMyEmail]          = useState(() => localStorage.getItem('devtrack-my-email') || '')
+  const [reviewModal,        setReviewModal]        = useState(null)
+  const [rejectReason,       setRejectReason]       = useState('')
+  const [confirmAcceptModal, setConfirmAcceptModal] = useState(null)
+  const [myEmail,          setMyEmail]          = useState(() => localStorage.getItem('devtrack-my-email') || 'devicetracker53@gmail.com')
   const [editMyEmail,      setEditMyEmail]      = useState(false)
   const [myEmailDraft,     setMyEmailDraft]     = useState('')
+  const [importResult,     setImportResult]     = useState(null)
 
   useEffect(() => { localStorage.setItem('devtrack-cols',    JSON.stringify(columns))       }, [columns])
   useEffect(() => { localStorage.setItem('devtrack-items',   JSON.stringify(items))         }, [items])
@@ -211,13 +215,13 @@ export default function DevTrack({ pendingAction = {} }) {
         const message   = `This is a 2-day reminder. The following device is still awaiting your response:\n\n${details}`
         try {
           await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
-            { to_email: item.email, subject, message, dashboard_url: window.location.href, accept_url: acceptUrl, reject_url: rejectUrl },
+            { to_email: item.email, subject, message, dashboard_url: `${window.location.origin}?page=devtrack`, accept_url: acceptUrl, reject_url: rejectUrl },
             { publicKey: EMAILJS_PUBLIC_KEY })
           if (originatorEmail && originatorEmail !== item.email) {
             await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
               { to_email: originatorEmail, subject: `[Originator Copy] ${subject}`,
                 message: `Recipient ${item.email} has not yet responded.\n\n${details}`,
-                dashboard_url: window.location.href, accept_url: acceptUrl, reject_url: rejectUrl },
+                dashboard_url: `${window.location.origin}?page=devtrack`, accept_url: acceptUrl, reject_url: rejectUrl },
               { publicKey: EMAILJS_PUBLIC_KEY })
           }
           sent++
@@ -235,16 +239,24 @@ export default function DevTrack({ pendingAction = {} }) {
     sendReminders()
   }, [])
 
+function doAccept(item) {
+    const outcomeEntry = { date: new Date().toISOString(), type: 'Accepted', byEmail: item.email, reason: '' }
+    setItems(prev => prev.map(it =>
+      it.id === item.id ? { ...it, status: 'Accepted', transferHistory: [...(it.transferHistory || []), outcomeEntry] } : it
+    ))
+    showToast('Device Accepted successfully.')
+    setConfirmAcceptModal(null)
+  }
+
   useEffect(() => {
     const { action, id } = pendingAction
     if (!action || !id) return
     if (action === 'accept') {
-      setItems(prev => prev.map(it => {
-        if (it.id !== id) return it
-        const outcomeEntry = { date: new Date().toISOString(), type: 'Accepted', byEmail: it.email, reason: '' }
-        return { ...it, status: 'Accepted', transferHistory: [...(it.transferHistory || []), outcomeEntry] }
-      }))
-      showToast('Device Accepted successfully.')
+      setItems(prev => {
+        const item = prev.find(it => it.id === id)
+        if (item) setConfirmAcceptModal(item)
+        return prev
+      })
       window.history.replaceState({}, '', window.location.pathname)
     } else if (action === 'reject') {
       // Show rejection reason modal before finalizing
@@ -257,13 +269,13 @@ export default function DevTrack({ pendingAction = {} }) {
     }
   }, [])
 
-  const projects  = ['All', ...Array.from(new Set(items.map(i => i.project).filter(Boolean))).sort()]
+  const projects  = Array.from(new Set(items.map(i => i.project).filter(Boolean))).sort()
   const sites     = ['All', ...Array.from(new Set(items.map(i => i.cmSite).filter(Boolean))).sort()]
   const statuses  = ['All', ...Array.from(new Set(items.map(i => i.status).filter(Boolean))).sort()]
 
-  const visible = [...items]
+  const visible = !filterProject ? [] : [...items]
     .filter(it =>
-      (filterProject === 'All' || (it.project ?? '').toLowerCase() === filterProject.toLowerCase()) &&
+      (it.project ?? '').toLowerCase() === filterProject.toLowerCase() &&
       (filterSite    === 'All' || (it.cmSite  ?? '').toLowerCase() === filterSite.toLowerCase()) &&
       (filterStatus  === 'All' || it.status === filterStatus) &&
       (search === '' || columns.some(({ key }) => (it[key] ?? '').toLowerCase().includes(search.toLowerCase())))
@@ -295,7 +307,31 @@ export default function DevTrack({ pendingAction = {} }) {
 
   function startEdit(it)  { setEditId(it.id); setEditDraft({ ...it }) }
   function saveEdit() {
-    setItems(prev => prev.map(it => it.id === editId ? { ...it, ...editDraft } : it))
+    setItems(prev => prev.map(it => {
+      if (it.id !== editId) return it
+      const updated = { ...it, ...editDraft }
+      const entries = []
+      if (editDraft.status && editDraft.status !== it.status) {
+        entries.push({
+          date:      new Date().toISOString(),
+          type:      'Status Change',
+          fromEmail: it.email || '—',
+          toEmail:   '',
+          reason:    `${it.status || '—'} → ${editDraft.status}`,
+        })
+      }
+      if (editDraft.email && editDraft.email !== it.email) {
+        entries.push({
+          date:      new Date().toISOString(),
+          type:      'Recipient Change',
+          fromEmail: it.email || '—',
+          toEmail:   editDraft.email,
+          reason:    '',
+        })
+      }
+      if (entries.length) updated.transferHistory = [...(it.transferHistory || []), ...entries]
+      return updated
+    }))
     setEditId(null); setEditDraft({})
   }
   function cancelEdit()   { setEditId(null); setEditDraft({}) }
@@ -332,143 +368,138 @@ export default function DevTrack({ pendingAction = {} }) {
   function handleImportCSV(e) {
     const file = e.target.files?.[0]
     if (!file) return
+    const t0 = Date.now()
     const reader = new FileReader()
     reader.onload = evt => {
       const result = parseCSV(evt.target.result)
-      if (result.error) { showToast(result.error, 'error'); return }
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(1)
 
-      const append = items.length > 0 && window.confirm(
-        `You already have ${items.length} item(s).\n\nClick OK to ADD new rows to existing data.\nClick Cancel to REPLACE all existing data.`
-      )
+      if (result.error) {
+        setImportResult({ ok: false, filename: file.name, error: result.error, elapsed })
+        e.target.value = ''
+        return
+      }
 
-      if (append) {
-        const normSN   = v => (v ?? '').replace(/[\s,]/g, '').toLowerCase()
-        const normIMEI = v => (v ?? '').replace(/[\s,]/g, '').toLowerCase()
+      const normSN   = v => (v ?? '').replace(/[\s,]/g, '').toLowerCase()
+      const normIMEI = v => (v ?? '').replace(/[\s,]/g, '').toLowerCase()
+      const existingSNs   = new Set(items.map(i => normSN(i.sn)).filter(Boolean))
+      const existingIMEIs = new Set(items.map(i => normIMEI(i.imei)).filter(Boolean))
 
-        const existingSNs   = new Set(items.map(i => normSN(i.sn)).filter(Boolean))
-        const existingIMEIs = new Set(items.map(i => normIMEI(i.imei)).filter(Boolean))
-
-        const unique = []
-        const dupes  = []
-        for (const item of result.items) {
-          const snKey   = normSN(item.sn)
-          const imeiKey = normIMEI(item.imei)
-          const snDupe   = snKey   && existingSNs.has(snKey)
-          const imeiDupe = imeiKey && existingIMEIs.has(imeiKey)
-
-          if (snDupe || imeiDupe) {
-            const reasons = []
-            if (snDupe)   reasons.push(`SN ${item.sn} already in use`)
-            if (imeiDupe) reasons.push(`IMEI ${item.imei} already in use`)
-            dupes.push(reasons.join(' & '))
-          } else {
-            unique.push(item)
-          }
+      const unique = []
+      const dupes  = []
+      for (const item of result.items) {
+        const snKey   = normSN(item.sn)
+        const imeiKey = normIMEI(item.imei)
+        const snDupe   = snKey   && existingSNs.has(snKey)
+        const imeiDupe = imeiKey && existingIMEIs.has(imeiKey)
+        if (snDupe || imeiDupe) {
+          const reasons = []
+          if (snDupe)   reasons.push(`SN ${item.sn}`)
+          if (imeiDupe) reasons.push(`IMEI ${item.imei}`)
+          dupes.push(reasons.join(' & '))
+        } else {
+          unique.push(item)
         }
+      }
 
-        if (dupes.length > 0 && unique.length === 0) {
-          showToast(`Nothing added — ${dupes.slice(0, 3).join(' · ')}${dupes.length > 3 ? ` · +${dupes.length - 3} more` : ''}`, 'error')
-          e.target.value = ''
-          return
-        }
-
+      if (unique.length > 0) {
         setColumns(prev => {
           const existingKeys = new Set(prev.map(c => c.key))
           return [...prev, ...result.columns.filter(c => !existingKeys.has(c.key))]
         })
         setItems(prev => [...prev, ...unique])
-
-        if (dupes.length > 0) {
-          showToast(`✓ ${unique.length} added — skipped: ${dupes.slice(0, 2).join(' · ')}${dupes.length > 2 ? ` · +${dupes.length - 2} more` : ''}`, 'error')
-        } else {
-          showToast(`✓ ${unique.length} row${unique.length !== 1 ? 's' : ''} imported — ${result.columns.length} columns captured.`)
-        }
         warnMissingFields(unique)
         autoNotifyImported(unique, result.columns)
-      } else {
-        setColumns(result.columns)
-        setItems(result.items)
-        showToast(`✓ ${result.items.length} row${result.items.length !== 1 ? 's' : ''} imported — ${result.columns.length} columns captured.`)
-        warnMissingFields(result.items)
-        autoNotifyImported(result.items, result.columns)
       }
-      setFilterProject('All'); setFilterSite('All'); setFilterStatus('All'); setSearch('')
+
+      setFilterProject(''); setFilterSite('All'); setFilterStatus('All'); setSearch('')
       setImportHistory(prev => [{
-        id:        crypto.randomUUID(),
-        date:      new Date().toISOString(),
-        filename:  file.name,
-        rowCount:  result.items.length,
-        columns:   result.columns.map(c => c.label || c.key),
+        id:       crypto.randomUUID(),
+        date:     new Date().toISOString(),
+        filename: file.name,
+        rowCount: unique.length,
+        columns:  result.columns.map(c => c.label || c.key),
       }, ...prev])
+
+      const recipients = [...new Set(unique.map(i => i.email).filter(Boolean))]
+      setImportResult({
+        ok:         unique.length > 0,
+        filename:   file.name,
+        added:      unique.length,
+        dupes,
+        elapsed,
+        timestamp:  new Date().toISOString(),
+        byEmail:    myEmail,
+        recipients,
+        snCount:    unique.filter(i => i.sn).length,
+        imeiCount:  unique.filter(i => i.imei).length,
+      })
     }
     reader.readAsText(file)
     e.target.value = ''
   }
 
   function handleClearFilters() {
-    setFilterProject('All')
+    setFilterProject('')
     setFilterSite('All')
     setFilterStatus('All')
     setSearch('')
   }
 
-  async function sendTransferNotification(item, toEmail) {
-    const historyEntry = {
-      date:      new Date().toISOString(),
-      type:      'Transfer',
-      fromEmail: item.email || '—',
-      toEmail:   toEmail,
-      status:    item.status,
-      reason:    '',
-    }
-    const updatedItem = {
-      ...item,
-      email:           toEmail,
-      status:          'Not Started',
-      notifiedAt:      new Date().toISOString(),
-      lastReminderSentAt: null,
-      transferHistory: [...(item.transferHistory || []), historyEntry],
-    }
-    setItems(prev => prev.map(it => it.id === item.id ? updatedItem : it))
-
+  async function sendTransferNotification(item, toEmail, reason = '') {
     const baseUrl    = window.location.origin
     const acceptUrl  = `${baseUrl}?page=devtrack&action=accept&id=${item.id}`
     const rejectUrl  = `${baseUrl}?page=devtrack&action=reject&id=${item.id}`
     const detailCols = columns.filter(c => c.key !== 'email')
-    const details    = detailCols.map(c => `${c.label}: ${updatedItem[c.key] || '—'}`).join('\n')
+
+    const historyEntry = {
+      date:      new Date().toISOString(),
+      type:      'Transfer',
+      fromEmail: myEmail || item.email || '—',
+      toEmail:   toEmail,
+      status:    item.status,
+      reason:    reason.trim(),
+    }
+    const updatedItem = {
+      ...item,
+      email:           toEmail,
+      status:          'Pending Transfer',
+      notifiedAt:      new Date().toISOString(),
+      lastReminderSentAt: null,
+      transferHistory: [...(item.transferHistory || []), historyEntry],
+    }
+    const details = detailCols.map(c => `${c.label}: ${updatedItem[c.key] || '—'}`).join('\n')
 
     try {
       await emailjs.send(
         EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
         { to_email: toEmail, subject: 'Device Assignment Notification',
-          message: details, dashboard_url: window.location.href,
+          message: details, dashboard_url: `${window.location.origin}?page=devtrack`,
           accept_url: acceptUrl, reject_url: rejectUrl },
         { publicKey: EMAILJS_PUBLIC_KEY }
       )
+      setItems(prev => prev.map(it => it.id === item.id ? updatedItem : it))
       showToast(`✓ Notification sent to ${toEmail}.`)
     } catch {
-      showToast('Transferred — email notification failed. Check EmailJS config.', 'error')
+      showToast('Email failed — status not changed. Check EmailJS quota or config.', 'error')
     }
   }
 
   async function handleTransfer() {
     if (!transferEmail.trim()) return
+    if (!transferReason.trim()) { showToast('Please enter a reason for the transfer.', 'error'); return }
     setTransferSending(true)
-    await sendTransferNotification(transferModal, transferEmail.trim())
+    await sendTransferNotification(transferModal, transferEmail.trim(), transferReason)
     setTransferSending(false)
     setTransferModal(null)
     setTransferEmail('')
+    setTransferReason('')
   }
 
-  async function handleAutoTransfer(item) {
-    if (!item.email) {
-      setTransferModal(item)
-      setTransferEmail('')
-      return
-    }
-    setTransferSending(true)
-    await sendTransferNotification(item, item.email)
-    setTransferSending(false)
+  function handleAutoTransfer(item) {
+    setTransferModal(item)
+    setTransferEmail(item.email || '')
+    setTransferReason('')
   }
 
   function confirmReject() {
@@ -498,12 +529,12 @@ export default function DevTrack({ pendingAction = {} }) {
         await emailjs.send(
           EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
           { to_email: item.email, subject: 'Device Assignment Notification',
-            message: details, dashboard_url: window.location.href,
+            message: details, dashboard_url: `${window.location.origin}?page=devtrack`,
             accept_url: acceptUrl, reject_url: rejectUrl },
           { publicKey: EMAILJS_PUBLIC_KEY }
         )
         setItems(prev => prev.map(it => it.id === item.id
-          ? { ...it, notifiedAt: new Date().toISOString(), lastReminderSentAt: null }
+          ? { ...it, status: 'Pending Transfer', notifiedAt: new Date().toISOString(), lastReminderSentAt: null }
           : it))
         sent++
       } catch {}
@@ -513,18 +544,18 @@ export default function DevTrack({ pendingAction = {} }) {
 
   async function handleNotify() {
     const detailCols = columns.filter(c => c.key !== 'email')
-    const withEmail  = items.filter(i => i.email && i.status !== 'Accepted' && i.status !== 'Rejected')
-    if (!withEmail.length) { showToast('No pending recipients to notify (all have already accepted or rejected).', 'error'); return }
+    const withEmail  = items.filter(i => i.email && i.status?.toLowerCase() === 'pending transfer')
+    if (!withEmail.length) { showToast('No "Pending Transfer" items to notify.', 'error'); return }
 
     if (EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
       showToast('EmailJS not configured yet — please add your Service ID, Template ID, and Public Key.', 'error')
       return
     }
 
-    const dashboardUrl = window.location.href
+    const dashboardUrl = `${window.location.origin}?page=devtrack`
     showToast(`Sending ${withEmail.length} notification${withEmail.length !== 1 ? 's' : ''}…`)
 
-    let sent = 0, failed = 0
+    let sent = 0, failed = 0, lastErr = ''
 
     const baseUrl = window.location.origin
 
@@ -558,12 +589,13 @@ export default function DevTrack({ pendingAction = {} }) {
         }))
       } catch (err) {
         console.error('EmailJS error:', err)
+        lastErr = err?.text || err?.message || JSON.stringify(err) || 'Unknown error'
         failed++
       }
     }
 
     if (failed === 0) showToast(`✓ ${sent} notification${sent !== 1 ? 's' : ''} sent successfully.`)
-    else showToast(`Sent ${sent}, failed ${failed}. Check console for details.`, 'error')
+    else showToast(`Sent ${sent}, failed ${failed}: ${lastErr}`, 'error')
   }
 
   const counts = STATUSES.reduce((acc, s) => ({ ...acc, [s]: items.filter(i => i.status === s).length }), {})
@@ -592,17 +624,70 @@ export default function DevTrack({ pendingAction = {} }) {
               Current recipient: <strong>{transferModal.email || '—'}</strong>
             </p>
             <label className="dt-modal-label">New recipient email</label>
-            <input className="inv-form-input" style={{ width: '100%', marginBottom: 16 }}
+            <input className="inv-form-input" style={{ width: '100%', marginBottom: 12 }}
               type="email" placeholder="newrecipient@email.com"
               value={transferEmail} onChange={e => setTransferEmail(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleTransfer(); if (e.key === 'Escape') setTransferModal(null) }}
+              onKeyDown={e => { if (e.key === 'Escape') setTransferModal(null) }}
               autoFocus />
+            <label className="dt-modal-label">Reason for transfer request <span style={{ color: '#ef4444' }}>*</span></label>
+            <textarea className="inv-form-input"
+              style={{ width: '100%', minHeight: 70, resize: 'vertical', marginBottom: 16 }}
+              placeholder="e.g. Device reassigned, wrong recipient, project change…"
+              value={transferReason} onChange={e => setTransferReason(e.target.value)} />
             <div className="dt-modal-actions">
-              <button className="inv-save-btn" onClick={handleTransfer} disabled={transferSending}>
+              <button className="inv-save-btn" onClick={handleTransfer} disabled={transferSending || !transferReason.trim()}>
                 {transferSending ? 'Sending…' : '↗ Transfer & Notify'}
               </button>
-              <button className="inv-cancel-btn" onClick={() => setTransferModal(null)}>Cancel</button>
+              <button className="inv-cancel-btn" onClick={() => { setTransferModal(null); setTransferReason('') }}>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Import Result Modal ───────────────────────────────────── */}
+      {importResult && (
+        <div className="dt-modal-overlay" onClick={() => setImportResult(null)}>
+          <div className="dt-import-result-modal" onClick={e => e.stopPropagation()}>
+            <div className={`dt-import-result-icon-wrap ${importResult.ok ? 'ok' : 'err'}`}>
+              <span>{importResult.ok ? '✓' : '✕'}</span>
+            </div>
+            <div className={`dt-import-result-badge ${importResult.ok ? 'ok' : 'err'}`}>
+              {importResult.ok ? 'Import successful' : 'Import failed'}
+            </div>
+            <h3 className="dt-import-result-title">
+              {importResult.ok ? 'File imported' : 'Import error'}
+            </h3>
+            <p className="dt-import-result-desc">
+              {importResult.ok
+                ? importResult.dupes?.length > 0
+                  ? `${importResult.added} row${importResult.added !== 1 ? 's' : ''} added. ${importResult.dupes.length} duplicate${importResult.dupes.length !== 1 ? 's' : ''} skipped — SN or IMEI already exists.`
+                  : 'Your file was processed and imported without any issues.'
+                : importResult.error || 'Something went wrong. The file could not be imported.'}
+            </p>
+            <div className="dt-import-result-divider" />
+            <div className="dt-import-result-details">
+              <div className="dt-import-detail-row">
+                <span className="dt-import-detail-icon">📄</span>
+                <span>{importResult.filename}</span>
+              </div>
+              {importResult.ok && (
+                <div className="dt-import-detail-row">
+                  <span className="dt-import-detail-icon">🗄</span>
+                  <span>{importResult.added.toLocaleString()} row{importResult.added !== 1 ? 's' : ''} imported</span>
+                </div>
+              )}
+              {importResult.dupes?.length > 0 && (
+                <div className="dt-import-detail-row" style={{ color: '#d97706' }}>
+                  <span className="dt-import-detail-icon">⚠</span>
+                  <span>{importResult.dupes.length} duplicate{importResult.dupes.length !== 1 ? 's' : ''} skipped</span>
+                </div>
+              )}
+              <div className="dt-import-detail-row">
+                <span className="dt-import-detail-icon">⏱</span>
+                <span>Completed in {importResult.elapsed}s</span>
+              </div>
+            </div>
+            <button className="inv-save-btn" style={{ marginTop: 20, width: '100%' }} onClick={() => setImportResult(null)}>Done</button>
           </div>
         </div>
       )}
@@ -610,40 +695,113 @@ export default function DevTrack({ pendingAction = {} }) {
       {/* ── History Modal ─────────────────────────────────────────── */}
       {historyModal && (
         <div className="dt-modal-overlay" onClick={() => setHistoryModal(null)}>
-          <div className="dt-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 700 }}>
-            <h3 className="dt-modal-title">Transfer History</h3>
-            <p className="dt-modal-sub">SN: <strong>{historyModal.sn || '—'}</strong> &nbsp;|&nbsp; IMEI: <strong>{historyModal.imei || '—'}</strong></p>
-            <table className="build-table inv-table" style={{ marginTop: 8 }}>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Event</th>
-                  <th>From</th>
-                  <th>To / By</th>
-                  <th>Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(historyModal.transferHistory || []).length === 0 ? (
-                  <tr><td colSpan={5} className="inv-empty">No history yet.</td></tr>
-                ) : (historyModal.transferHistory || []).map((h, i) => (
-                  <tr key={i} className="inv-data-row">
-                    <td style={{ whiteSpace: 'nowrap' }}>{new Date(h.date).toLocaleString()}</td>
-                    <td>
-                      <span className={`status-badge ${h.type === 'Accepted' ? 'status-completed' : h.type === 'Rejected' ? 'dt-status-blocked' : 'status-on-going'}`}>
-                        {h.type || 'Transfer'}
+          <div className="dt-import-result-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420, width: '92vw', maxHeight: '88vh', overflowY: 'auto' }}>
+            <div className="dt-import-result-icon-wrap" style={{ background: '#ede9fe', color: '#7c3aed', margin: '0 auto 12px' }}>⏱</div>
+            <div className="dt-import-result-badge" style={{ background: '#ede9fe', color: '#6d28d9' }}>History</div>
+            <h3 className="dt-import-result-title" style={{ fontSize: 15, marginTop: 10 }}>
+              SN: {historyModal.sn || '—'} &nbsp;|&nbsp; IMEI: {historyModal.imei || '—'}
+            </h3>
+            <div className="dt-import-result-divider" />
+
+            {(() => {
+              const history = historyModal.transferHistory || []
+              const hasTransfer = history.some(h => h.type === 'Transfer')
+
+              if (!hasTransfer) {
+                const acceptedEntry = history.find(h => h.type === 'Accepted')
+                const isAccepted    = historyModal.status === 'Accepted'
+                const isPending     = historyModal.status === 'Pending Transfer'
+                return (
+                  <div className="dt-import-result-details">
+                    <div className="dt-import-detail-row">
+                      <span className="dt-import-detail-icon">📅</span>
+                      <span><strong>Date Loaded:</strong> {historyModal.createdAt ? new Date(historyModal.createdAt).toLocaleString() : '—'}</span>
+                    </div>
+                    <div className="dt-import-detail-row">
+                      <span className="dt-import-detail-icon">📤</span>
+                      <span><strong>From:</strong> {myEmail || '—'}</span>
+                    </div>
+                    <div className="dt-import-detail-row">
+                      <span className="dt-import-detail-icon">📥</span>
+                      <span><strong>To:</strong> {isAccepted ? (historyModal.email || '—') : 'N/A'}</span>
+                    </div>
+                    <div className="dt-import-detail-row">
+                      <span className="dt-import-detail-icon">🔖</span>
+                      <span>
+                        <strong>Status:</strong>{' '}
+                        <span style={{ color: isPending ? '#dc2626' : isAccepted ? '#16a34a' : '#475569', fontWeight: 600 }}>
+                          {historyModal.status || '—'}
+                        </span>
                       </span>
-                    </td>
-                    <td>{h.fromEmail || '—'}</td>
-                    <td>{h.toEmail || h.byEmail || '—'}</td>
-                    <td style={{ color: '#64748b', fontStyle: h.reason ? 'normal' : 'italic' }}>{h.reason || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="dt-modal-actions" style={{ marginTop: 16 }}>
-              <button className="inv-cancel-btn" onClick={() => setHistoryModal(null)}>Close</button>
-            </div>
+                    </div>
+                    <div className="dt-import-detail-row">
+                      <span className="dt-import-detail-icon">✅</span>
+                      <span><strong>Date Accepted:</strong> {acceptedEntry ? new Date(acceptedEntry.date).toLocaleString() : '—'}</span>
+                    </div>
+                    <div className="dt-import-detail-row">
+                      <span className="dt-import-detail-icon">🔄</span>
+                      <span><strong>Transfer to:</strong> N/A — no transfer requested</span>
+                    </div>
+                    <div className="dt-import-detail-row">
+                      <span className="dt-import-detail-icon">📝</span>
+                      <span><strong>Reason for transfer:</strong> —</span>
+                    </div>
+                  </div>
+                )
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {history.map((h, i) => (
+                    <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px', background: '#f8fafc' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <span className={`status-badge ${h.type === 'Accepted' ? 'status-completed' : h.type === 'Rejected' ? 'dt-status-blocked' : 'status-on-going'}`} style={{ fontSize: 11 }}>
+                          {h.type || 'Transfer'}
+                        </span>
+                        <span style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(h.date).toLocaleString()}</span>
+                      </div>
+                      <div className="dt-import-result-details">
+                        <div className="dt-import-detail-row">
+                          <span className="dt-import-detail-icon">📤</span>
+                          <span><strong>From:</strong> {h.fromEmail || '—'}</span>
+                        </div>
+                        <div className="dt-import-detail-row">
+                          <span className="dt-import-detail-icon">📥</span>
+                          <span><strong>To:</strong> {h.toEmail || h.byEmail || '—'}</span>
+                        </div>
+                        <div className="dt-import-detail-row">
+                          <span className="dt-import-detail-icon">🔖</span>
+                          <span>
+                            <strong>Status:</strong>{' '}
+                            <span style={{ color: h.type === 'Transfer' ? '#dc2626' : h.type === 'Accepted' ? '#16a34a' : '#475569', fontWeight: 600 }}>
+                              {h.type === 'Transfer' ? 'Pending Transfer' : h.type}
+                            </span>
+                          </span>
+                        </div>
+                        {h.type === 'Accepted' && (
+                          <div className="dt-import-detail-row">
+                            <span className="dt-import-detail-icon">✅</span>
+                            <span><strong>Date Accepted:</strong> {new Date(h.date).toLocaleString()}</span>
+                          </div>
+                        )}
+                        <div className="dt-import-detail-row">
+                          <span className="dt-import-detail-icon">🔄</span>
+                          <span><strong>Transfer to:</strong> {h.toEmail || 'N/A'}</span>
+                        </div>
+                        <div className="dt-import-detail-row">
+                          <span className="dt-import-detail-icon">📝</span>
+                          <span style={{ color: h.reason ? '#1e293b' : '#94a3b8', fontStyle: h.reason ? 'normal' : 'italic' }}>
+                            <strong>Reason for transfer:</strong> {h.reason || '—'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+
+            <button className="inv-cancel-btn" style={{ marginTop: 20, width: '100%' }} onClick={() => setHistoryModal(null)}>Close</button>
           </div>
         </div>
       )}
@@ -681,31 +839,31 @@ export default function DevTrack({ pendingAction = {} }) {
         </div>
       )}
 
-      {/* ── Summary cards ─────────────────────────────────────────── */}
-      <div className="stats-row">
-        <div className="stat-card">
-          <div className="stat-value">{items.length}</div>
-          <div className="stat-label">Total Items</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{uniqueProjects}</div>
-          <div className="stat-label">Projects</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{sites.length - 1}</div>
-          <div className="stat-label">CM Sites</div>
-        </div>
-        {hasStatus && <>
-          <div className={`stat-card ${counts['Blocked'] > 0 ? 'stat-card-danger' : ''}`}>
-            <div className="stat-value">{counts['Blocked'] ?? 0}</div>
-            <div className="stat-label">Blocked</div>
+      {/* ── Confirm Accept Modal ─────────────────────────────────── */}
+      {confirmAcceptModal && (
+        <div className="dt-modal-overlay">
+          <div className="dt-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="dt-modal-title">Confirm Acceptance</h3>
+            <p className="dt-modal-sub">SN: <strong>{confirmAcceptModal.sn || '—'}</strong> &nbsp;|&nbsp; IMEI: <strong>{confirmAcceptModal.imei || '—'}</strong></p>
+            <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 14px', marginBottom: 14 }}>
+              {columns.filter(c => ['project','config','cmSite','destination'].includes(c.key)).map(c => (
+                <div key={c.key} style={{ display: 'flex', gap: 8, fontSize: 13, marginBottom: 4 }}>
+                  <span style={{ color: '#94a3b8', minWidth: 100 }}>{c.label}:</span>
+                  <strong>{confirmAcceptModal[c.key] || '—'}</strong>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 14, color: '#374151', marginBottom: 16 }}>Are you sure you would like to accept this device?</p>
+            <div className="dt-modal-actions">
+              <button className="inv-save-btn" style={{ background: '#22c55e' }} onClick={() => doAccept(confirmAcceptModal)}>
+                ✓ Yes, Accept
+              </button>
+              <button className="inv-cancel-btn" onClick={() => setConfirmAcceptModal(null)}>Cancel</button>
+            </div>
           </div>
-          <div className="stat-card stat-card-ok">
-            <div className="stat-value">{counts['Completed'] ?? 0}</div>
-            <div className="stat-label">Completed</div>
-          </div>
-        </>}
-      </div>
+        </div>
+      )}
+
 
       {/* ── Originator email (for reminders) ─────────────────────── */}
       <div className="dt-my-email-bar">
@@ -742,7 +900,8 @@ export default function DevTrack({ pendingAction = {} }) {
         </div>
 
         <select className="filter-select" value={filterProject} onChange={e => setFilterProject(e.target.value)}>
-          {projects.map(p => <option key={p} value={p}>{p === 'All' ? 'All Projects' : p}</option>)}
+          <option value=''>— Select a project —</option>
+          {projects.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
 
         <select className="filter-select" value={filterSite} onChange={e => setFilterSite(e.target.value)}>
@@ -764,13 +923,13 @@ export default function DevTrack({ pendingAction = {} }) {
           <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={handleImportCSV} />
         </label>
 
-        {items.some(i => i.email) && (
-          <button className="dt-notify-btn" onClick={handleNotify} title="Send email notification to each recipient">
-            ✉ Notify All
+        {items.some(i => i.email && i.status?.toLowerCase() === 'pending transfer') && (
+          <button className="dt-notify-btn" onClick={handleNotify} title="Send email notification to all Pending Transfer recipients">
+            ✉ Notify Pending
           </button>
         )}
 
-        {(search || filterProject !== 'All' || filterSite !== 'All' || filterStatus !== 'All') && (
+        {(search || filterProject || filterSite !== 'All' || filterStatus !== 'All') && (
           <button className="inv-cancel-btn" style={{ padding: '6px 12px', fontSize: 12 }}
             onClick={handleClearFilters} title="Clear all filters">
             Clear Filters
@@ -825,9 +984,9 @@ export default function DevTrack({ pendingAction = {} }) {
             {visible.length === 0 && !adding ? (
               <tr>
                 <td colSpan={columns.length + 1} className="inv-empty">
-                  {search || filterProject !== 'All' || filterSite !== 'All' || filterStatus !== 'All'
-                    ? 'No items match the current filters.'
-                    : 'No items yet — click "+ Add Item" or "Import CSV" to start.'}
+                  {!filterProject
+                    ? 'Select a project to view its devices.'
+                    : 'No items match the current filters.'}
                 </td>
               </tr>
             ) : (
@@ -849,8 +1008,18 @@ export default function DevTrack({ pendingAction = {} }) {
                                 onChange={e => setEditDraft(d => ({ ...d, [key]: e.target.value }))}
                               />
                           : key === 'status'
-                            ? <span className={`status-badge ${STATUS_CLASS[it.status] ?? 'status-not-started'}`}>
-                                {it.status || '—'}
+                            ? <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                                <span className={`status-badge ${STATUS_CLASS[it.status] ?? 'status-not-started'}`}>
+                                  {it.status || '—'}
+                                </span>
+                                {it.status === 'Accepted' && (() => {
+                                  const entry = [...(it.transferHistory || [])].reverse().find(h => h.type === 'Accepted')
+                                  return entry
+                                    ? <span style={{ fontSize: 10, color: '#64748b', whiteSpace: 'nowrap' }}>
+                                        {new Date(entry.date).toLocaleString()}
+                                      </span>
+                                    : null
+                                })()}
                               </span>
                             : <span>{it[key] || '—'}</span>
                         }
@@ -871,8 +1040,8 @@ export default function DevTrack({ pendingAction = {} }) {
                             disabled={transferSending}
                             title={it.email ? `Notify ${it.email}` : 'Set recipient & notify'}>↗</button>
                           <button className="inv-save-btn" style={{ background: '#64748b' }}
-                            onClick={() => setHistoryModal(it)} title="Transfer History">📋</button>
-                          {it.status !== 'Accepted' && (
+                            onClick={() => setHistoryModal(it)} title="History">📋</button>
+{it.status !== 'Accepted' && (
                             <button className="inv-delete-btn" onClick={() => deleteItem(it.id)} title="Delete">🗑</button>
                           )}
                         </div>

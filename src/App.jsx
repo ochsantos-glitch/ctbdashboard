@@ -39,6 +39,17 @@ export function makeProject(name) {
 }
 
 function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try { return localStorage.getItem('sidebar-open') !== 'false' } catch { return true }
+  })
+
+  function toggleSidebar() {
+    setSidebarOpen(v => {
+      localStorage.setItem('sidebar-open', String(!v))
+      return !v
+    })
+  }
+
   const [activePage, setActivePage] = useState(() => {
     const p = new URLSearchParams(window.location.search)
     return p.get('page') === 'devtrack' ? 'devtrack' : 'dashboard'
@@ -47,7 +58,9 @@ function App() {
     const p = new URLSearchParams(window.location.search)
     return { action: p.get('action'), id: p.get('id') }
   })
-  const [bom,    setBom]    = useState(initialBom)
+  const [bom,    setBom]    = useState(() => {
+    try { const s = localStorage.getItem('dashboard-bom'); return s ? JSON.parse(s) : initialBom } catch { return initialBom }
+  })
   const [builds, setBuilds] = useState(() => {
     try {
       const saved = localStorage.getItem('dashboard-builds')
@@ -65,9 +78,7 @@ function App() {
     return [makeProject('Project A'), makeProject('Project B')]
   })
 
-  const [activeProjectId, setActiveProjectId] = useState(
-    () => localStorage.getItem('dashboard-activeId') ?? null
-  )
+  const [activeProjectId, setActiveProjectId] = useState(null)
 
   const [materials, setMaterials] = useState(() => {
     try { const s = localStorage.getItem('bm-materials'); return s ? JSON.parse(s) : [] } catch { return [] }
@@ -79,6 +90,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('dashboard-builds', JSON.stringify(builds))
   }, [builds])
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-bom', JSON.stringify(bom))
+  }, [bom])
 
   useEffect(() => {
     localStorage.setItem('bm-materials', JSON.stringify(materials))
@@ -93,9 +108,9 @@ function App() {
   }, [projects])
 
   useEffect(() => {
-    const id = activeProjectId ?? projects[0]?.id
-    if (id) localStorage.setItem('dashboard-activeId', id)
-  }, [activeProjectId, projects])
+    if (activeProjectId) localStorage.setItem('dashboard-activeId', activeProjectId)
+    else localStorage.removeItem('dashboard-activeId')
+  }, [activeProjectId])
 
   const resolvedActiveId = activeProjectId ?? projects[0]?.id
   const activeProject    = projects.find(p => p.id === resolvedActiveId) ?? projects[0]
@@ -136,7 +151,7 @@ function App() {
         return (
           <Dashboard
             projects={projects} setProjects={setProjects}
-            activeProjectId={resolvedActiveId} setActiveProjectId={setActiveProjectId}
+            activeProjectId={activeProjectId} setActiveProjectId={setActiveProjectId}
           />
         )
       case 'budget':
@@ -144,17 +159,17 @@ function App() {
           <Budget
             bom={bom} builds={builds}
             projects={projects} setProjects={setProjects}
-            activeProjectId={resolvedActiveId} setActiveProjectId={setActiveProjectId}
+            activeProjectId={activeProjectId} setActiveProjectId={setActiveProjectId}
           />
         )
       case 'bomExplorer':
         return <BOMExplorer />
       case 'bom':
-        return <BOMTable bom={bom} setBom={setBom} alerts={alerts} />
+        return <div className="dashboard-page"><BOMTable bom={bom} setBom={setBom} alerts={alerts} /></div>
       case 'suppliers':
-        return <SupplierMatrix bom={bom} />
+        return <div className="dashboard-page"><SupplierMatrix bom={bom} /></div>
       case 'upload':
-        return <UploadPanel />
+        return <div className="dashboard-page"><UploadPanel /></div>
       case 'buildMatrix':
         return (
           <BuildMatrix
@@ -190,19 +205,32 @@ function App() {
         return <AlertsPage alerts={alerts} onNavigate={setActivePage} />
       default:
         return (
-          <>
+          <div className="dashboard-page">
             <h1>{navItems.find(n => n.id === activePage)?.label}</h1>
             <p>Welcome to the {activePage} page!</p>
-          </>
+          </div>
         )
     }
   }
 
   return (
     <div className="app-container">
-      <nav className="sidebar">
+      {/* Overlay backdrop */}
+      {sidebarOpen && <div className="sidebar-backdrop" onClick={toggleSidebar} />}
+
+      {/* Hamburger button — always visible top-left */}
+      <button className="sidebar-hamburger" onClick={toggleSidebar} title="Menu">
+        <span /><span /><span />
+        {alertCount > 0 && (
+          <div className={`hamburger-alert-dot ${dangerCount > 0 ? 'badge-danger' : 'badge-warning'}`} />
+        )}
+      </button>
+
+      {/* Slide-out drawer */}
+      <nav className={`sidebar sidebar-drawer${sidebarOpen ? ' sidebar-drawer-open' : ''}`}>
         <div className="sidebar-header">
           <h2>Build Manager</h2>
+          <button className="sidebar-close-btn" onClick={toggleSidebar}>✕</button>
           {alertCount > 0 && (
             <div className={`global-alert-badge ${dangerCount > 0 ? 'badge-danger' : 'badge-warning'}`}>
               {alertCount} alert{alertCount !== 1 ? 's' : ''}
@@ -214,7 +242,7 @@ function App() {
             <li
               key={item.id}
               className={activePage === item.id ? 'active' : ''}
-              onClick={() => setActivePage(item.id)}
+              onClick={() => { setActivePage(item.id); setSidebarOpen(false) }}
             >
               {item.label}
               {item.badge > 0 && (
