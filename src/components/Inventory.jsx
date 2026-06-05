@@ -192,7 +192,7 @@ export default function Inventory({ bom = [], builds = [], projects = [] }) {
                   {boards.map(b => <option key={b} value={b}>{b === 'All' ? 'All Boards' : b}</option>)}
                 </select>
                 <select className="filter-select" value={filterStage} onChange={e => setFilterStage(e.target.value)}>
-                  {stages.map(s => <option key={s} value={s}>{s === 'All' ? 'All Stages' : s}</option>)}
+                  {stages.map(s => <option key={s} value={s}>{s === 'All' ? 'All Revisions' : s}</option>)}
                 </select>
                 <span style={{ fontSize:12, color:'#64748b', alignSelf:'center' }}>
                   {filteredBOM.length} / {bom.length} parts · {filteredBuilds.length} builds
@@ -211,7 +211,7 @@ export default function Inventory({ bom = [], builds = [], projects = [] }) {
                       <th style={{ textAlign:'right' }}>Incoming</th>
                       <th style={{ textAlign:'right' }}>Qty Needed</th>
                       <th style={{ textAlign:'right' }}>Balance</th>
-                      <th>Stage</th>
+                      <th>Revision</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -229,7 +229,7 @@ export default function Inventory({ bom = [], builds = [], projects = [] }) {
                       }).filter(Boolean))]
                       return (
                         <tr key={part.id} className="inv-data-row">
-                          <td style={{ fontFamily:'monospace', fontSize:11 }}>{part.kpn || part.lab126pn || '—'}</td>
+                          <td style={{ fontFamily:'monospace', fontSize:11 }}>{part.kpn || part.lab126pn || part.id || '—'}</td>
                           <td style={{ fontSize:12 }}>{part.description || '—'}</td>
                           <td>
                             {projNames.length > 0
