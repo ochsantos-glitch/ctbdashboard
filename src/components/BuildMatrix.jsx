@@ -1033,6 +1033,33 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
         </div>
       </div>
 
+      {addingPart && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:8, padding:'10px 16px', background:'#f0f9ff', borderBottom:'2px solid #bae6fd', alignItems:'center' }}>
+          {[
+            { field:'kpn',         ph:'PN *',         w:110 },
+            { field:'description', ph:'Description',  w:180 },
+            { field:'supplier',    ph:'MFR Name',     w:120 },
+            { field:'mpn',         ph:'MPN',          w:120 },
+            { field:'qtyPerUnit',  ph:'Qty/Unit',     w:70,  num:true },
+            { field:'uom',         ph:'UOM',          w:60  },
+          ].map(({ field, ph, w, num }) => (
+            <input key={field} className="bm-inline-input" style={{ width:w, fontSize:12 }}
+              type={num ? 'number' : 'text'} placeholder={ph}
+              value={newPartData[field] ?? ''}
+              onChange={e => setNewPartData(p => ({ ...p, [field]: e.target.value }))}
+              onKeyDown={e => { if (e.key === 'Enter') commitNewPart(); if (e.key === 'Escape') { setAddingPart(false); setNewPartData({}) } }} />
+          ))}
+          <select className="filter-select" style={{ fontSize:12 }}
+            value={newPartData.appliesTo ?? ''}
+            onChange={e => setNewPartData(p => ({ ...p, appliesTo: e.target.value }))}>
+            <option value="">Board…</option>
+            {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+          <button className="btn-export" style={{ padding:'4px 14px' }} onClick={commitNewPart}>✓ Save Part</button>
+          <button className="btn-cancel" style={{ padding:'4px 10px' }} onClick={() => { setAddingPart(false); setNewPartData({}) }}>Cancel</button>
+        </div>
+      )}
+
       <div className="bm-unified-scroll">
         <table style={{ tableLayout:'fixed', width: colWidths.reduce((s,w)=>s+w,0) + filteredCfgs.reduce((s,c)=>s+getCfgW(c.Config),0) + DEL_W*2, borderCollapse:'collapse', fontSize:11, background:'#fff' }}>
           <colgroup>
@@ -1366,32 +1393,6 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                   </tr>
                 )
               })}
-              {addingPart && (
-                <tr className="inv-add-row">
-                  {[
-                    { ci:0, field:'kpn',         ph:'PN' },
-                    { ci:1, field:'description',  ph:'Description' },
-                    { ci:2, field:'supplier',     ph:'MFR Name' },
-                    { ci:3, field:'mpn',          ph:'MPN' },
-                    { ci:4, field:'qtyPerUnit',   ph:'Qty/Unit', num:true },
-                    { ci:5, field:'uom',          ph:'UOM' },
-                  ].map(({ ci, field, ph, num }) => (
-                    <td key={field} style={cellStyle(ci, '#f0f9ff')}>
-                      <input className="bm-inline-input" style={{ width: colWidths[ci] - 14, fontSize:11 }}
-                        type={num ? 'number' : 'text'} placeholder={ph}
-                        value={newPartData[field] ?? ''}
-                        onChange={e => setNewPartData(p => ({ ...p, [field]: e.target.value }))}
-                        onKeyDown={e => { if (e.key === 'Enter') commitNewPart(); if (e.key === 'Escape') { setAddingPart(false); setNewPartData({}) } }} />
-                    </td>
-                  ))}
-                  {filteredCfgs.map(c => <td key={c.Config} style={{ ...cw(c.Config), background:'#f0f9ff' }} />)}
-                  <td style={{ width:DEL_W, minWidth:DEL_W, background:'#eff6ff', borderLeft:'2px solid #94a3b8', padding:'4px 6px', textAlign:'center' }}>
-                    <button className="inv-save-btn" onClick={commitNewPart}>✓</button>
-                    <button className="inv-cancel-btn" onClick={() => { setAddingPart(false); setNewPartData({}) }}>×</button>
-                  </td>
-                  <td style={{ width:DEL_W, minWidth:DEL_W, background:'#f0fdf4' }} />
-                </tr>
-              )}
               {filteredBOM.length > 0 && filteredCfgs.length > 0 && (
                 <tr className="bm-flat-footer">
                   <td colSpan={5} style={{ textAlign:'right', fontWeight:700, fontSize:11, position:'sticky', left:0, zIndex:1, background:'#f8fafc' }}>Total usage per config →</td>
