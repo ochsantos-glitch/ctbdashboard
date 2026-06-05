@@ -41,7 +41,14 @@ function InlineCell({ value, type = 'text', onChange, placeholder }) {
   )
 }
 
-export default function Inventory() {
+function boardOf(configName) {
+  for (const b of ['MPACK', 'MMAIN', 'MPWR', 'MANT', 'MRF']) {
+    if ((configName || '').startsWith(b)) return b
+  }
+  return null
+}
+
+export default function Inventory({ bom = [], builds = [], projects = [] }) {
   const [items, setItems] = useState(() => {
     try {
       const saved = localStorage.getItem('inventory-items')
@@ -50,12 +57,17 @@ export default function Inventory() {
     return []
   })
 
-  const [form,    setForm]    = useState(EMPTY_FORM)
-  const [adding,  setAdding]  = useState(false)
-  const [search,  setSearch]  = useState('')
-  const [sortCol, setSortCol] = useState('receivedDate')
-  const [sortDir, setSortDir] = useState('desc')
-  const [errors,  setErrors]  = useState({})
+  const [form,       setForm]       = useState(EMPTY_FORM)
+  const [adding,     setAdding]     = useState(false)
+  const [search,     setSearch]     = useState('')
+  const [sortCol,    setSortCol]    = useState('receivedDate')
+  const [sortDir,    setSortDir]    = useState('desc')
+  const [errors,     setErrors]     = useState({})
+  const [activeTab,  setActiveTab]  = useState('manual')
+  const [bomSearch,  setBomSearch]  = useState('')
+  const [filterStage, setFilterStage] = useState('All')
+  const [filterProject, setFilterProject] = useState('All')
+  const [filterBoard, setFilterBoard] = useState('All')
 
   useEffect(() => {
     localStorage.setItem('inventory-items', JSON.stringify(items))
@@ -130,10 +142,141 @@ export default function Inventory() {
   const uniqueMaterials = new Set(items.map(it => it.material.trim()).filter(Boolean)).size
   const uniquePOs       = new Set(items.map(it => it.po.trim()).filter(Boolean)).size
 
+  // ── BOM Materials derived data ────────────────────────────────────────────
+  const stages    = ['All', ...new Set(builds.map(b => b.Stage).filter(Boolean))]
+  const boards    = ['All', ...new Set(bom.map(p => p.appliesTo).filter(Boolean))]
+  const projectNames = ['All', ...projects.map(p => p.name)]
+
+  const filteredBuilds = builds.filter(b =>
+    (filterStage   === 'All' || (b.Stage ?? '') === filterStage)
+  )
+
+  const filteredBOM = bom.filter(p =>
+    (filterBoard === 'All' || p.appliesTo === filterBoard) &&
+    (!bomSearch || (p.kpn||p.lab126pn||'').toLowerCase().includes(bomSearch.toLowerCase()) ||
+      (p.description||'').toLowerCase().includes(bomSearch.toLowerCase()))
+  )
+
   return (
     <div className="dashboard-page">
       <h1>Inventory</h1>
 
+      {/* ── Tabs ──────────────────────────────────────────────────── */}
+      <div className="bm-subtab-bar" style={{ marginBottom: 16 }}>
+        <div className="bm-subtabs">
+          <button className={`bm-subtab ${activeTab === 'manual' ? 'active' : ''}`} onClick={() => setActiveTab('manual')}>Manual Records</button>
+          <button className={`bm-subtab ${activeTab === 'bom' ? 'active' : ''}`} onClick={() => setActiveTab('bom')}>
+            BOM Materials {bom.length > 0 && <span style={{ marginLeft:4, fontSize:11, opacity:0.7 }}>({bom.length})</span>}
+          </button>
+        </div>
+      </div>
+
+      {/* ── BOM Materials tab ──────────────────────────────────────── */}
+      {activeTab === 'bom' && (
+        <div>
+          {bom.length === 0 ? (
+            <div className="inv-empty" style={{ padding: '40px 20px', textAlign:'center' }}>
+              No BOM parts loaded — go to <strong>Build Matrix → BOM / Parts</strong> to upload parts.
+            </div>
+          ) : (
+            <>
+              {/* Filters */}
+              <div className="inv-toolbar" style={{ flexWrap:'wrap', gap:8, marginBottom:12 }}>
+                <div className="proj-search-wrap">
+                  <span className="proj-search-icon">⌕</span>
+                  <input className="proj-search-input" placeholder="Search PN or description…"
+                    value={bomSearch} onChange={e => setBomSearch(e.target.value)} style={{ width:200 }} />
+                  {bomSearch && <button className="proj-search-clear" onClick={() => setBomSearch('')}>×</button>}
+                </div>
+                <select className="filter-select" value={filterBoard} onChange={e => setFilterBoard(e.target.value)}>
+                  {boards.map(b => <option key={b} value={b}>{b === 'All' ? 'All Boards' : b}</option>)}
+                </select>
+                <select className="filter-select" value={filterStage} onChange={e => setFilterStage(e.target.value)}>
+                  {stages.map(s => <option key={s} value={s}>{s === 'All' ? 'All Stages' : s}</option>)}
+                </select>
+                <span style={{ fontSize:12, color:'#64748b', alignSelf:'center' }}>
+                  {filteredBOM.length} / {bom.length} parts · {filteredBuilds.length} builds
+                </span>
+              </div>
+
+              {/* Table */}
+              <div className="bom-table-wrap">
+                <table className="build-table inv-table">
+                  <thead>
+                    <tr>
+                      <th>PN</th>
+                      <th>Description</th>
+                      <th>Board</th>
+                      <th>Category</th>
+                      <th style={{ textAlign:'right' }}>Qty/Unit</th>
+                      <th style={{ textAlign:'right' }}>Material Drive</th>
+                      <th style={{ textAlign:'right' }}>Qty Needed</th>
+                      <th style={{ textAlign:'right' }}>Balance</th>
+                      <th>Stage</th>
+                      <th>Project</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBOM.length === 0 ? (
+                      <tr><td colSpan={10} className="inv-empty">No parts match filters.</td></tr>
+                    ) : filteredBOM.map(part => {
+                      const relBuilds = filteredBuilds.filter(b => boardOf(b.Config) === part.appliesTo)
+                      const qtyNeeded = relBuilds.reduce((s, b) => s + (part.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
+                      const matDrive  = Number(part.materialQtyOrdered) || 0
+                      const balance   = matDrive > 0 ? matDrive - qtyNeeded : null
+                      const stageSet  = [...new Set(relBuilds.map(b => b.Stage).filter(Boolean))]
+                      const projNames = [...new Set(relBuilds.map(b => {
+                        const proj = projects.find(p => (p.stages ?? []).includes(b.Stage))
+                        return proj?.name
+                      }).filter(Boolean))]
+                      return (
+                        <tr key={part.id} className="inv-data-row">
+                          <td style={{ fontFamily:'monospace', fontSize:11 }}>{part.kpn || part.lab126pn || '—'}</td>
+                          <td style={{ fontSize:12 }}>{part.description || '—'}</td>
+                          <td><span style={{ padding:'1px 7px', borderRadius:10, fontSize:11, background:'#f1f5f9', color:'#475569' }}>{part.appliesTo || '—'}</span></td>
+                          <td style={{ fontSize:11 }}>{part.category || '—'}</td>
+                          <td style={{ textAlign:'right' }}>{part.qtyPerUnit ?? 1}</td>
+                          <td style={{ textAlign:'right' }}>{matDrive > 0 ? matDrive.toLocaleString() : '—'}</td>
+                          <td style={{ textAlign:'right', fontWeight:700 }}>{qtyNeeded > 0 ? qtyNeeded.toLocaleString() : '—'}</td>
+                          <td style={{ textAlign:'right', fontWeight:700, color: balance == null ? '#94a3b8' : balance < 0 ? '#ef4444' : '#16a34a' }}>
+                            {balance == null ? '—' : `${balance >= 0 ? '+' : ''}${balance.toLocaleString()}`}
+                          </td>
+                          <td>
+                            {stageSet.length > 0
+                              ? stageSet.map(s => <span key={s} style={{ marginRight:4, padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dbeafe', color:'#1d4ed8' }}>{s}</span>)
+                              : <span style={{ color:'#94a3b8' }}>—</span>}
+                          </td>
+                          <td>
+                            {projNames.length > 0
+                              ? projNames.map(n => <span key={n} style={{ marginRight:4, padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dcfce7', color:'#15803d' }}>{n}</span>)
+                              : <span style={{ color:'#94a3b8' }}>—</span>}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                  {filteredBOM.length > 0 && (
+                    <tfoot>
+                      <tr className="bom-total-row">
+                        <td colSpan={6}><strong>Total Qty Needed</strong></td>
+                        <td style={{ textAlign:'right' }}>
+                          <strong>{filteredBOM.reduce((s, p) => {
+                            const rb = filteredBuilds.filter(b => boardOf(b.Config) === p.appliesTo)
+                            return s + rb.reduce((rs, b) => rs + (p.qtyPerUnit||1)*(Number(b.Quantity)||0), 0)
+                          }, 0).toLocaleString()}</strong>
+                        </td>
+                        <td colSpan={3}></td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'manual' && <>
       {/* ── Summary cards ─────────────────────────────────────────── */}
       <div className="stats-row">
         <div className="stat-card">
@@ -285,6 +428,7 @@ export default function Inventory() {
           )}
         </table>
       </div>
+      </>}
     </div>
   )
 }
