@@ -7,6 +7,53 @@ const EMAILJS_PUBLIC_KEY  = 'ORvGP0xa6uEimVFBu'
 
 const STATUSES = ['Not Started', 'In Progress', 'Blocked', 'Completed', 'Pending Transfer', 'Accepted', 'Rejected']
 
+const DEFAULT_REQUEST_TYPES = ['Allocation', 'Materials']
+function getCustomRequestTypes() {
+  try { return JSON.parse(localStorage.getItem('dt-custom-request-types')) || [] } catch { return [] }
+}
+function addCustomRequestType(t) {
+  const cur = getCustomRequestTypes()
+  if (!cur.includes(t)) localStorage.setItem('dt-custom-request-types', JSON.stringify([...cur, t]))
+}
+function allRequestTypes() { return [...DEFAULT_REQUEST_TYPES, ...getCustomRequestTypes()] }
+const REQUEST_TYPE_COLORS = {
+  'Allocation': { bg: '#dbeafe', text: '#1d4ed8' },
+  'Materials':  { bg: '#dcfce7', text: '#15803d' },
+}
+function requestTypeColor(t) { return REQUEST_TYPE_COLORS[t] ?? { bg: '#ede9fe', text: '#6d28d9' } }
+
+function RequestTypeSelect({ value, onChange }) {
+  const [types,  setTypes]  = useState(allRequestTypes)
+  const [adding, setAdding] = useState(false)
+  const [draft,  setDraft]  = useState('')
+
+  function confirm() {
+    const t = draft.trim()
+    if (t && !types.includes(t)) { addCustomRequestType(t); setTypes(allRequestTypes()); onChange(t) }
+    else if (t) onChange(t)
+    setDraft(''); setAdding(false)
+  }
+
+  if (adding) return (
+    <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+      <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} placeholder="New type…"
+        className="inv-form-input" style={{ width:100 }}
+        onKeyDown={e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') { setAdding(false); setDraft('') } }} />
+      <button className="inv-save-btn" onClick={confirm}>✓</button>
+      <button className="inv-cancel-btn" onClick={() => { setAdding(false); setDraft('') }}>×</button>
+    </div>
+  )
+
+  return (
+    <select className="inv-form-input" value={value || ''}
+      onChange={e => e.target.value === '__add__' ? setAdding(true) : onChange(e.target.value)}>
+      <option value="">— None —</option>
+      {types.map(t => <option key={t} value={t}>{t}</option>)}
+      <option value="__add__">＋ Add type…</option>
+    </select>
+  )
+}
+
 const STATUS_CLASS = {
   'Not Started':      'status-not-started',
   'In Progress':      'status-on-going',
@@ -948,6 +995,9 @@ function doAccept(item) {
                   {label} <SortIcon col={key} />
                 </th>
               ))}
+              <th style={{ minWidth: 120, textAlign: 'center' }} onClick={() => toggleSort('requestType')} className="sortable-th">
+                Request Type <SortIcon col="requestType" />
+              </th>
               <th style={{ width: 80 }}></th>
             </tr>
           </thead>
@@ -972,6 +1022,9 @@ function doAccept(item) {
                     }
                   </td>
                 ))}
+                <td>
+                  <RequestTypeSelect value={form.requestType ?? ''} onChange={v => setForm(f => ({ ...f, requestType: v }))} />
+                </td>
                 <td>
                   <div className="inv-row-actions">
                     <button className="inv-save-btn" onClick={handleAdd} title="Save">✓</button>
@@ -1025,6 +1078,14 @@ function doAccept(item) {
                         }
                       </td>
                     ))}
+                    <td style={{ textAlign: 'center' }}>
+                      {isEditing
+                        ? <RequestTypeSelect value={editDraft.requestType ?? ''} onChange={v => setEditDraft(d => ({ ...d, requestType: v }))} />
+                        : it.requestType
+                          ? <span style={{ padding:'2px 10px', borderRadius:12, fontSize:11, fontWeight:600, whiteSpace:'nowrap', background: requestTypeColor(it.requestType).bg, color: requestTypeColor(it.requestType).text }}>{it.requestType}</span>
+                          : <span style={{ color:'#94a3b8' }}>—</span>
+                      }
+                    </td>
                     <td>
                       {isEditing ? (
                         <div className="inv-row-actions">
