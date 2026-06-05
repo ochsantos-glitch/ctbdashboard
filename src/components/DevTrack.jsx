@@ -54,6 +54,47 @@ function RequestTypeSelect({ value, onChange }) {
   )
 }
 
+function getCustomCompanies() {
+  try { return JSON.parse(localStorage.getItem('dt-custom-companies')) || [] } catch { return [] }
+}
+function addCustomCompany(c) {
+  const cur = getCustomCompanies()
+  if (!cur.includes(c)) localStorage.setItem('dt-custom-companies', JSON.stringify([...cur, c]))
+}
+function allCompanies() { return getCustomCompanies() }
+
+function CompanySelect({ value, onChange }) {
+  const [companies, setCompanies] = useState(allCompanies)
+  const [adding,    setAdding]    = useState(false)
+  const [draft,     setDraft]     = useState('')
+
+  function confirm() {
+    const c = draft.trim()
+    if (c && !companies.includes(c)) { addCustomCompany(c); setCompanies(allCompanies()); onChange(c) }
+    else if (c) onChange(c)
+    setDraft(''); setAdding(false)
+  }
+
+  if (adding) return (
+    <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+      <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} placeholder="Company name…"
+        className="inv-form-input" style={{ width:110 }}
+        onKeyDown={e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') { setAdding(false); setDraft('') } }} />
+      <button className="inv-save-btn" onClick={confirm}>✓</button>
+      <button className="inv-cancel-btn" onClick={() => { setAdding(false); setDraft('') }}>×</button>
+    </div>
+  )
+
+  return (
+    <select className="inv-form-input" value={value || ''}
+      onChange={e => e.target.value === '__add__' ? setAdding(true) : onChange(e.target.value)}>
+      <option value="">— None —</option>
+      {companies.map(c => <option key={c} value={c}>{c}</option>)}
+      <option value="__add__">＋ Add company…</option>
+    </select>
+  )
+}
+
 const STATUS_CLASS = {
   'Not Started':      'status-not-started',
   'In Progress':      'status-on-going',
@@ -256,19 +297,19 @@ export default function DevTrack({ pendingAction = {} }) {
       let sent = 0
       for (const item of pending) {
         const details   = detailCols.map(c => `${c.label}: ${item[c.key] || '—'}`).join('\n')
-        const acceptUrl = `${baseUrl}?page=devtrack&action=accept&id=${item.id}`
-        const rejectUrl = `${baseUrl}?page=devtrack&action=reject&id=${item.id}`
+        const acceptUrl = `${baseUrl}?page=msdevtrack&action=accept&id=${item.id}`
+        const rejectUrl = `${baseUrl}?page=msdevtrack&action=reject&id=${item.id}`
         const subject   = `Reminder: Device Assignment Pending — ${item.sn || item.imei || 'Device'}`
         const message   = `This is a 2-day reminder. The following device is still awaiting your response:\n\n${details}`
         try {
           await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
-            { to_email: item.email, subject, message, dashboard_url: `${window.location.origin}?page=devtrack`, accept_url: acceptUrl, reject_url: rejectUrl },
+            { to_email: item.email, subject, message, dashboard_url: `${window.location.origin}?page=msdevtrack`, accept_url: acceptUrl, reject_url: rejectUrl },
             { publicKey: EMAILJS_PUBLIC_KEY })
           if (originatorEmail && originatorEmail !== item.email) {
             await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
               { to_email: originatorEmail, subject: `[Originator Copy] ${subject}`,
                 message: `Recipient ${item.email} has not yet responded.\n\n${details}`,
-                dashboard_url: `${window.location.origin}?page=devtrack`, accept_url: acceptUrl, reject_url: rejectUrl },
+                dashboard_url: `${window.location.origin}?page=msdevtrack`, accept_url: acceptUrl, reject_url: rejectUrl },
               { publicKey: EMAILJS_PUBLIC_KEY })
           }
           sent++
@@ -495,8 +536,8 @@ function doAccept(item) {
 
   async function sendTransferNotification(item, toEmail, reason = '') {
     const baseUrl    = window.location.origin
-    const acceptUrl  = `${baseUrl}?page=devtrack&action=accept&id=${item.id}`
-    const rejectUrl  = `${baseUrl}?page=devtrack&action=reject&id=${item.id}`
+    const acceptUrl  = `${baseUrl}?page=msdevtrack&action=accept&id=${item.id}`
+    const rejectUrl  = `${baseUrl}?page=msdevtrack&action=reject&id=${item.id}`
     const detailCols = columns.filter(c => c.key !== 'email')
 
     const historyEntry = {
@@ -521,7 +562,7 @@ function doAccept(item) {
       await emailjs.send(
         EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
         { to_email: toEmail, subject: 'Device Assignment Notification',
-          message: details, dashboard_url: `${window.location.origin}?page=devtrack`,
+          message: details, dashboard_url: `${window.location.origin}?page=msdevtrack`,
           accept_url: acceptUrl, reject_url: rejectUrl },
         { publicKey: EMAILJS_PUBLIC_KEY }
       )
@@ -570,13 +611,13 @@ function doAccept(item) {
     let sent = 0
     for (const item of withEmail) {
       const details    = detailCols.map(c => `${c.label}: ${item[c.key] || '—'}`).join('\n')
-      const acceptUrl  = `${baseUrl}?page=devtrack&action=accept&id=${item.id}`
-      const rejectUrl  = `${baseUrl}?page=devtrack&action=reject&id=${item.id}`
+      const acceptUrl  = `${baseUrl}?page=msdevtrack&action=accept&id=${item.id}`
+      const rejectUrl  = `${baseUrl}?page=msdevtrack&action=reject&id=${item.id}`
       try {
         await emailjs.send(
           EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
           { to_email: item.email, subject: 'Device Assignment Notification',
-            message: details, dashboard_url: `${window.location.origin}?page=devtrack`,
+            message: details, dashboard_url: `${window.location.origin}?page=msdevtrack`,
             accept_url: acceptUrl, reject_url: rejectUrl },
           { publicKey: EMAILJS_PUBLIC_KEY }
         )
@@ -599,7 +640,7 @@ function doAccept(item) {
       return
     }
 
-    const dashboardUrl = `${window.location.origin}?page=devtrack`
+    const dashboardUrl = `${window.location.origin}?page=msdevtrack`
     showToast(`Sending ${withEmail.length} notification${withEmail.length !== 1 ? 's' : ''}…`)
 
     let sent = 0, failed = 0, lastErr = ''
@@ -611,8 +652,8 @@ function doAccept(item) {
         .map(c => `${c.label}: ${item[c.key] || '—'}`)
         .join('\n')
 
-      const acceptUrl = `${baseUrl}?page=devtrack&action=accept&id=${item.id}`
-      const rejectUrl = `${baseUrl}?page=devtrack&action=reject&id=${item.id}`
+      const acceptUrl = `${baseUrl}?page=msdevtrack&action=accept&id=${item.id}`
+      const rejectUrl = `${baseUrl}?page=msdevtrack&action=reject&id=${item.id}`
 
       try {
         await emailjs.send(
@@ -652,7 +693,7 @@ function doAccept(item) {
 
   return (
     <div className="dashboard-page">
-      <h1>DevTrack</h1>
+      <h1>MSDevTrack</h1>
 
       {/* ── Toast ────────────────────────────────────────────────── */}
       {toast && (
@@ -998,6 +1039,9 @@ function doAccept(item) {
               <th style={{ minWidth: 120, textAlign: 'center' }} onClick={() => toggleSort('requestType')} className="sortable-th">
                 Request Type <SortIcon col="requestType" />
               </th>
+              <th style={{ minWidth: 120, textAlign: 'center' }} onClick={() => toggleSort('company')} className="sortable-th">
+                Company <SortIcon col="company" />
+              </th>
               <th style={{ width: 80 }}></th>
             </tr>
           </thead>
@@ -1024,6 +1068,9 @@ function doAccept(item) {
                 ))}
                 <td>
                   <RequestTypeSelect value={form.requestType ?? ''} onChange={v => setForm(f => ({ ...f, requestType: v }))} />
+                </td>
+                <td>
+                  <CompanySelect value={form.company ?? ''} onChange={v => setForm(f => ({ ...f, company: v }))} />
                 </td>
                 <td>
                   <div className="inv-row-actions">
@@ -1083,6 +1130,14 @@ function doAccept(item) {
                         ? <RequestTypeSelect value={editDraft.requestType ?? ''} onChange={v => setEditDraft(d => ({ ...d, requestType: v }))} />
                         : it.requestType
                           ? <span style={{ padding:'2px 10px', borderRadius:12, fontSize:11, fontWeight:600, whiteSpace:'nowrap', background: requestTypeColor(it.requestType).bg, color: requestTypeColor(it.requestType).text }}>{it.requestType}</span>
+                          : <span style={{ color:'#94a3b8' }}>—</span>
+                      }
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {isEditing
+                        ? <CompanySelect value={editDraft.company ?? ''} onChange={v => setEditDraft(d => ({ ...d, company: v }))} />
+                        : it.company
+                          ? <span style={{ padding:'2px 10px', borderRadius:12, fontSize:11, fontWeight:600, whiteSpace:'nowrap', background:'#fff7ed', color:'#c2410c' }}>{it.company}</span>
                           : <span style={{ color:'#94a3b8' }}>—</span>
                       }
                     </td>

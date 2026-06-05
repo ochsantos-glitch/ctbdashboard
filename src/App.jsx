@@ -52,7 +52,7 @@ function App() {
 
   const [activePage, setActivePage] = useState(() => {
     const p = new URLSearchParams(window.location.search)
-    return p.get('page') === 'devtrack' ? 'devtrack' : 'dashboard'
+    return p.get('page') === 'msdevtrack' ? 'msdevtrack' : 'dashboard'
   })
   const [pendingAction] = useState(() => {
     const p = new URLSearchParams(window.location.search)
@@ -138,7 +138,7 @@ function App() {
     { id: 'alerts',      label: 'Alerts', badge: alertCount },
     { id: 'orders',      label: 'Orders' },
     { id: 'inventory',   label: 'Inventory' },
-    { id: 'devtrack',    label: 'DevTrack' },
+    { id: 'msdevtrack',  label: 'MSDevTrack' },
     { id: 'materials',   label: 'Materials' },
     { id: 'allocation',  label: 'Allocation' },
     { id: 'reports',     label: 'Reports' },
@@ -184,7 +184,7 @@ function App() {
         )
       case 'inventory':
         return <Inventory />
-      case 'devtrack':
+      case 'msdevtrack':
         return <DevTrack pendingAction={pendingAction} />
       case 'materials':
         return (
