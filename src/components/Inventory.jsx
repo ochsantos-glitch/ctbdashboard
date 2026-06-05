@@ -48,7 +48,7 @@ function boardOf(configName) {
   return null
 }
 
-export default function Inventory({ bom = [], builds = [], projects = [] }) {
+export default function Inventory({ bom = [], builds = [], projects = [], activeProjectId = null }) {
   const [items, setItems] = useState(() => {
     try {
       const saved = localStorage.getItem('inventory-items')
@@ -143,6 +143,8 @@ export default function Inventory({ bom = [], builds = [], projects = [] }) {
   const uniquePOs       = new Set(items.map(it => it.po.trim()).filter(Boolean)).size
 
   // ── BOM Materials derived data ────────────────────────────────────────────
+  const activeProject = projects.find(p => p.id === activeProjectId) ?? projects[0] ?? null
+  const activeProjectName = activeProject?.name ?? null
   const stages    = ['All', ...new Set(builds.map(b => b.Stage).filter(Boolean))]
   const boards    = ['All', ...new Set(bom.map(p => p.appliesTo).filter(Boolean))]
   const projectNames = ['All', ...projects.map(p => p.name)]
@@ -218,22 +220,19 @@ export default function Inventory({ bom = [], builds = [], projects = [] }) {
                     {filteredBOM.length === 0 ? (
                       <tr><td colSpan={8} className="inv-empty">No parts match filters.</td></tr>
                     ) : filteredBOM.map(part => {
-                      const relBuilds = filteredBuilds.filter(b => boardOf(b.Config) === part.appliesTo)
+                      const relBuilds = filteredBuilds.filter(b => boardOf(b.Config) === part.appliesTo || boardOf(b.Config) === null)
                       const qtyNeeded = relBuilds.reduce((s, b) => s + (part.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
                       const incoming  = part.deliveryQty != null ? Number(part.deliveryQty) : (Number(part.materialQtyOrdered) || null)
                       const balance   = incoming != null ? incoming - qtyNeeded : null
                       const stageSet  = [...new Set(relBuilds.map(b => b.Stage).filter(Boolean))]
-                      const projNames = [...new Set(relBuilds.map(b => {
-                        const proj = projects.find(p => (p.stages ?? []).includes(b.Stage))
-                        return proj?.name
-                      }).filter(Boolean))]
+                      const projName  = activeProjectName
                       return (
                         <tr key={part.id} className="inv-data-row">
                           <td style={{ fontFamily:'monospace', fontSize:11 }}>{part.kpn || part.lab126pn || part.id || '—'}</td>
                           <td style={{ fontSize:12 }}>{part.description || '—'}</td>
                           <td>
-                            {projNames.length > 0
-                              ? projNames.map(n => <span key={n} style={{ marginRight:4, padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dcfce7', color:'#15803d' }}>{n}</span>)
+                            {projName
+                              ? <span style={{ padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dcfce7', color:'#15803d' }}>{projName}</span>
                               : <span style={{ color:'#94a3b8' }}>—</span>}
                           </td>
                           <td style={{ fontSize:11 }}>{part.category || '—'}</td>

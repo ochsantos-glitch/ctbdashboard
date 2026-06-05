@@ -183,7 +183,7 @@ function App() {
           />
         )
       case 'inventory':
-        return <Inventory bom={bom} builds={builds} projects={projects} />
+        return <Inventory bom={bom} builds={builds} projects={projects} activeProjectId={resolvedActiveId} />
       case 'msdevtrack':
         return <DevTrack pendingAction={pendingAction} />
       case 'materials':
