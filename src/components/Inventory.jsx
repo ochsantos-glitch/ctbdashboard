@@ -206,24 +206,22 @@ export default function Inventory({ bom = [], builds = [], projects = [] }) {
                     <tr>
                       <th>PN</th>
                       <th>Description</th>
-                      <th>Board</th>
+                      <th>Project</th>
                       <th>Category</th>
-                      <th style={{ textAlign:'right' }}>Qty/Unit</th>
-                      <th style={{ textAlign:'right' }}>Material Drive</th>
+                      <th style={{ textAlign:'right' }}>Incoming</th>
                       <th style={{ textAlign:'right' }}>Qty Needed</th>
                       <th style={{ textAlign:'right' }}>Balance</th>
                       <th>Stage</th>
-                      <th>Project</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredBOM.length === 0 ? (
-                      <tr><td colSpan={10} className="inv-empty">No parts match filters.</td></tr>
+                      <tr><td colSpan={8} className="inv-empty">No parts match filters.</td></tr>
                     ) : filteredBOM.map(part => {
                       const relBuilds = filteredBuilds.filter(b => boardOf(b.Config) === part.appliesTo)
                       const qtyNeeded = relBuilds.reduce((s, b) => s + (part.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
-                      const matDrive  = Number(part.materialQtyOrdered) || 0
-                      const balance   = matDrive > 0 ? matDrive - qtyNeeded : null
+                      const incoming  = part.deliveryQty != null ? Number(part.deliveryQty) : (Number(part.materialQtyOrdered) || null)
+                      const balance   = incoming != null ? incoming - qtyNeeded : null
                       const stageSet  = [...new Set(relBuilds.map(b => b.Stage).filter(Boolean))]
                       const projNames = [...new Set(relBuilds.map(b => {
                         const proj = projects.find(p => (p.stages ?? []).includes(b.Stage))
@@ -233,10 +231,13 @@ export default function Inventory({ bom = [], builds = [], projects = [] }) {
                         <tr key={part.id} className="inv-data-row">
                           <td style={{ fontFamily:'monospace', fontSize:11 }}>{part.kpn || part.lab126pn || '—'}</td>
                           <td style={{ fontSize:12 }}>{part.description || '—'}</td>
-                          <td><span style={{ padding:'1px 7px', borderRadius:10, fontSize:11, background:'#f1f5f9', color:'#475569' }}>{part.appliesTo || '—'}</span></td>
+                          <td>
+                            {projNames.length > 0
+                              ? projNames.map(n => <span key={n} style={{ marginRight:4, padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dcfce7', color:'#15803d' }}>{n}</span>)
+                              : <span style={{ color:'#94a3b8' }}>—</span>}
+                          </td>
                           <td style={{ fontSize:11 }}>{part.category || '—'}</td>
-                          <td style={{ textAlign:'right' }}>{part.qtyPerUnit ?? 1}</td>
-                          <td style={{ textAlign:'right' }}>{matDrive > 0 ? matDrive.toLocaleString() : '—'}</td>
+                          <td style={{ textAlign:'right', fontWeight:600 }}>{incoming != null ? incoming.toLocaleString() : '—'}</td>
                           <td style={{ textAlign:'right', fontWeight:700 }}>{qtyNeeded > 0 ? qtyNeeded.toLocaleString() : '—'}</td>
                           <td style={{ textAlign:'right', fontWeight:700, color: balance == null ? '#94a3b8' : balance < 0 ? '#ef4444' : '#16a34a' }}>
                             {balance == null ? '—' : `${balance >= 0 ? '+' : ''}${balance.toLocaleString()}`}
@@ -246,11 +247,6 @@ export default function Inventory({ bom = [], builds = [], projects = [] }) {
                               ? stageSet.map(s => <span key={s} style={{ marginRight:4, padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dbeafe', color:'#1d4ed8' }}>{s}</span>)
                               : <span style={{ color:'#94a3b8' }}>—</span>}
                           </td>
-                          <td>
-                            {projNames.length > 0
-                              ? projNames.map(n => <span key={n} style={{ marginRight:4, padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dcfce7', color:'#15803d' }}>{n}</span>)
-                              : <span style={{ color:'#94a3b8' }}>—</span>}
-                          </td>
                         </tr>
                       )
                     })}
@@ -258,14 +254,14 @@ export default function Inventory({ bom = [], builds = [], projects = [] }) {
                   {filteredBOM.length > 0 && (
                     <tfoot>
                       <tr className="bom-total-row">
-                        <td colSpan={6}><strong>Total Qty Needed</strong></td>
+                        <td colSpan={5}><strong>Total Qty Needed</strong></td>
                         <td style={{ textAlign:'right' }}>
                           <strong>{filteredBOM.reduce((s, p) => {
                             const rb = filteredBuilds.filter(b => boardOf(b.Config) === p.appliesTo)
                             return s + rb.reduce((rs, b) => rs + (p.qtyPerUnit||1)*(Number(b.Quantity)||0), 0)
                           }, 0).toLocaleString()}</strong>
                         </td>
-                        <td colSpan={3}></td>
+                        <td colSpan={2}></td>
                       </tr>
                     </tfoot>
                   )}
