@@ -1142,57 +1142,6 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
               </tr>
             ))}
 
-            {/* Totals section */}
-            <tr className="bm-section-row">
-              <td colSpan={NUM_FX + filteredCfgs.length} style={{ position:'sticky', left:0 }}>
-                Totals
-              </td>
-            </tr>
-            <tr style={{ background:'#f1f5f9' }}>
-              {cfgLabelCell(`Total Input: ${totalInput.toLocaleString()}`, { background:'#f1f5f9', fontWeight:700, color:'#1e293b' })}
-              {filteredCfgs.map(c => <td key={c.Config} className="bm-cell bm-cell-num" style={{...cw(c.Config), fontWeight:700, fontSize:13}}>{(Number(c.Quantity)||0).toLocaleString()}</td>)}
-            </tr>
-            <tr>
-              {cfgLabelCell(`Target Total: ${totalInput.toLocaleString()}`)}
-              {filteredCfgs.map(c => <td key={c.Config} className="bm-cell bm-cell-num" style={cw(c.Config)}>{(Number(c.Quantity)||0).toLocaleString()}</td>)}
-            </tr>
-            <tr>
-              {cfgLabelCell(`Actual Total: ${filteredCfgs.reduce((s,c)=>s+(Number(c.actualOutput)||0),0).toLocaleString()}`)}
-              {filteredCfgs.map(c => <td key={c.Config} className="bm-cell bm-cell-num" style={{...cw(c.Config), color:'#94a3b8'}}>{(Number(c.actualOutput)||0).toLocaleString()}</td>)}
-            </tr>
-            <tr>
-              {cfgLabelCell('Allocated')}
-              {filteredCfgs.map(c => {
-                const alloc = allocations.find(a => a.configName === c.Config)
-                const aq    = alloc ? alloc.rows.reduce((s,r) => s+(Number(r.qty)||0), 0) : null
-                const rem   = aq != null ? (Number(c.Quantity)||0) - aq : null
-                return (
-                  <td key={c.Config} className="bm-cell bm-cell-num" style={cw(c.Config)}>
-                    {aq != null ? <>{aq.toLocaleString()} <span style={{ color:rem<0?'#ef4444':'#86efac', fontSize:11 }}>({rem>=0?'+':''}{rem.toLocaleString()})</span></> : <span className="tm-na-dash">—</span>}
-                  </td>
-                )
-              })}
-            </tr>
-            <tr>
-              {cfgLabelCell(`# Parts: ${bom.length}`)}
-              {filteredCfgs.map(c => {
-                const board  = boardOf(c.Config)
-                const boardParts = board ? bom.filter(p => p.appliesTo === board) : bom
-                const count  = boardParts.length
-                return <td key={c.Config} className="bm-cell bm-cell-num" style={cw(c.Config)}>{count}</td>
-              })}
-            </tr>
-
-            {/* Alerts / BOM Cost */}
-            <tr>
-              {cfgLabelCell('BOM Cost')}
-              {filteredCfgs.map(c => {
-                const board = boardOf(c.Config)
-                const cost  = calcBOMCost(board ? bom.filter(p => p.appliesTo === board) : bom, c.Quantity)
-                const disp  = c.costOverride != null ? c.costOverride : cost
-                return <td key={c.Config} className="bm-cell bm-cell-num" style={cw(c.Config)}>${Math.round(disp).toLocaleString()}{c.costOverride!=null&&<span className="tm-overridden">*</span>}</td>
-              })}
-            </tr>
             <tr>
               {cfgLabelCell('Alerts')}
               {filteredCfgs.map(c => {
@@ -1905,7 +1854,7 @@ function BuildDetail({ builds, setBuilds, bom, setBom, alerts, budget, setBudget
             ))}
           </div>
           <div className="bm-subtab-actions">
-            <button className="btn-export" onClick={() => setShowAddForm(v => !v)}>{showAddForm ? '✕ Cancel' : '+ Add Config'}</button>
+            {subTab !== 'current' && <button className="btn-export" onClick={() => setShowAddForm(v => !v)}>{showAddForm ? '✕ Cancel' : '+ Add Config'}</button>}
             <label className="bm-csv-upload-btn">⬆ Upload CSV / XLSX<input ref={csvInputRef} type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv" style={{ display: 'none' }} onChange={handleCSVImport} /></label>
             {builds.length > 0 && <button className="bm-clear-btn" onClick={() => { if (window.confirm(`Remove all ${builds.length} configs?`)) { logChange('ALL CONFIGS', 'bulk clear', `${builds.length} config${builds.length !== 1 ? 's' : ''} removed`, '—'); setBuilds([]) } }}>🗑 Clear All</button>}
           </div>
