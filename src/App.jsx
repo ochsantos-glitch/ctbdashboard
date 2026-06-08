@@ -10,6 +10,7 @@ import UploadPanel from './components/UploadPanel'
 import BuildMatrix from './components/BuildMatrix'
 import BOMExplorer from './components/BOMExplorer'
 import Inventory from './components/Inventory'
+import MaterialRequest from './components/MaterialRequest'
 import DevTrack from './components/DevTrack'
 import Materials from './components/Materials'
 import Allocation from './components/Allocation'
@@ -68,6 +69,11 @@ function App() {
     } catch {}
     return initialBuilds
   })
+
+  const [inventoryItems, setInventoryItems] = useState(() => {
+    try { const s = localStorage.getItem('inventory-items'); return s ? JSON.parse(s) : [] } catch { return [] }
+  })
+  useEffect(() => { localStorage.setItem('inventory-items', JSON.stringify(inventoryItems)) }, [inventoryItems])
 
   // ── Projects (with per-project budget) — persisted to localStorage ────────
   const [projects, setProjects] = useState(() => {
@@ -138,6 +144,7 @@ function App() {
     { id: 'alerts',      label: 'Alerts', badge: alertCount },
     { id: 'orders',      label: 'Orders' },
     { id: 'inventory',   label: 'Inventory' },
+    { id: 'requests',    label: 'Requests' },
     { id: 'msdevtrack',  label: 'MSDevTrack' },
     { id: 'materials',   label: 'Materials' },
     { id: 'allocation',  label: 'Allocation' },
@@ -183,7 +190,9 @@ function App() {
           />
         )
       case 'inventory':
-        return <Inventory bom={bom} builds={builds} projects={projects} activeProjectId={resolvedActiveId} />
+        return <Inventory bom={bom} builds={builds} projects={projects} activeProjectId={resolvedActiveId} items={inventoryItems} setItems={setInventoryItems} />
+      case 'requests':
+        return <MaterialRequest bom={bom} inventoryItems={inventoryItems} setInventoryItems={setInventoryItems} />
       case 'msdevtrack':
         return <DevTrack pendingAction={pendingAction} />
       case 'materials':

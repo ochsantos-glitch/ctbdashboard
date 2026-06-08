@@ -48,14 +48,12 @@ function boardOf(configName) {
   return null
 }
 
-export default function Inventory({ bom = [], builds = [], projects = [], activeProjectId = null }) {
-  const [items, setItems] = useState(() => {
-    try {
-      const saved = localStorage.getItem('inventory-items')
-      if (saved) return JSON.parse(saved)
-    } catch {}
-    return []
+export default function Inventory({ bom = [], builds = [], projects = [], activeProjectId = null, items: itemsProp, setItems: setItemsProp }) {
+  const [localItems, setLocalItems] = useState(() => {
+    try { const s = localStorage.getItem('inventory-items'); return s ? JSON.parse(s) : [] } catch { return [] }
   })
+  const items    = itemsProp    ?? localItems
+  const setItems = setItemsProp ?? setLocalItems
 
   const [form,       setForm]       = useState(EMPTY_FORM)
   const [adding,     setAdding]     = useState(false)
@@ -70,8 +68,8 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
   const [filterBoard, setFilterBoard] = useState('All')
 
   useEffect(() => {
-    localStorage.setItem('inventory-items', JSON.stringify(items))
-  }, [items])
+    if (!itemsProp) localStorage.setItem('inventory-items', JSON.stringify(items))
+  }, [items, itemsProp])
 
   // ── Sorting ────────────────────────────────────────────────────────────────
   function toggleSort(col) {
