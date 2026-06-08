@@ -5,7 +5,7 @@ const EMAILJS_SERVICE_ID  = 'service_gvib8r2'
 const EMAILJS_TEMPLATE_ID = 'template_m2ws09m'
 const EMAILJS_PUBLIC_KEY  = 'ORvGP0xa6uEimVFBu'
 
-const STATUSES = ['Not Started', 'In Progress', 'Blocked', 'Completed', 'Pending Transfer', 'Accepted', 'Rejected']
+const STATUSES = ['Not Started', 'In Progress', 'Blocked', 'Completed', 'Pending Transfer', 'Accepted', 'Rejected', 'Allocation Requested', 'Materials Requested']
 
 const DEFAULT_REQUEST_TYPES = ['Allocation', 'Materials']
 function getCustomRequestTypes() {
@@ -101,8 +101,10 @@ const STATUS_CLASS = {
   'Blocked':          'dt-status-blocked',
   'Completed':        'status-completed',
   'Pending Transfer': 'status-on-going',
-  'Accepted':         'status-completed',
-  'Rejected':         'dt-status-blocked',
+  'Accepted':              'status-completed',
+  'Rejected':              'dt-status-blocked',
+  'Allocation Requested':  'status-on-going',
+  'Materials Requested':   'status-on-going',
 }
 
 // Known column aliases — used only to normalize keys, NOT to limit which columns appear
@@ -269,11 +271,19 @@ export default function DevTrack({ pendingAction = {} }) {
   const [editMyEmail,      setEditMyEmail]      = useState(false)
   const [myEmailDraft,     setMyEmailDraft]     = useState('')
   const [importResult,     setImportResult]     = useState(null)
+  const [requestRecipient, setRequestRecipient] = useState(() => localStorage.getItem('devtrack-request-recipient') || 'devicetracker53@gmail.com')
+  const [editReqRecipient, setEditReqRecipient] = useState(false)
+  const [reqRecipientDraft,setReqRecipientDraft]= useState('')
+  const [requestModal,     setRequestModal]     = useState(null)
+  const [reqType,          setReqType]          = useState('Allocation')
+  const [reqNote,          setReqNote]          = useState('')
+  const [reqSending,       setReqSending]       = useState(false)
 
   useEffect(() => { localStorage.setItem('devtrack-cols',    JSON.stringify(columns))       }, [columns])
   useEffect(() => { localStorage.setItem('devtrack-items',   JSON.stringify(items))         }, [items])
   useEffect(() => { localStorage.setItem('devtrack-history', JSON.stringify(importHistory)) }, [importHistory])
   useEffect(() => { localStorage.setItem('devtrack-my-email', myEmail)                      }, [myEmail])
+  useEffect(() => { localStorage.setItem('devtrack-request-recipient', requestRecipient)    }, [requestRecipient])
 
   // ── 2-day reminder check on load ─────────────────────────────────────────────
   useEffect(() => {
@@ -532,6 +542,26 @@ function doAccept(item) {
     setFilterSite('All')
     setFilterStatus('All')
     setSearch('')
+  }
+
+  async function sendRequest(item) {
+    if (!requestRecipient) { showToast('Set a request recipient email first.', 'error'); return }
+    setReqSending(true)
+    const details = columns.map(c => `${c.label}: ${item[c.key] || '—'}`).join('\n')
+    const subject = `${reqType} Request — ${item.project || item.config || item.sn || 'Item'}`
+    const message = `A ${reqType} request has been submitted.\n\n${reqNote ? `Note: ${reqNote}\n\n` : ''}Details:\n${details}`
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
+        { to_email: requestRecipient, subject, message, dashboard_url: `${window.location.origin}?page=msdevtrack`, accept_url: '', reject_url: '' },
+        { publicKey: EMAILJS_PUBLIC_KEY })
+      setItems(prev => prev.map(i => i.id !== item.id ? i : { ...i, requestType: reqType, status: `${reqType} Requested` }))
+      showToast(`✓ ${reqType} request sent to ${requestRecipient}`)
+    } catch (e) {
+      showToast(`Failed to send: ${e?.text || e?.message || 'Unknown error'}`, 'error')
+    }
+    setReqSending(false)
+    setRequestModal(null)
+    setReqNote('')
   }
 
   async function sendTransferNotification(item, toEmail, reason = '') {
@@ -928,6 +958,44 @@ function doAccept(item) {
       )}
 
       {/* ── Confirm Accept Modal ─────────────────────────────────── */}
+      {requestModal && (
+        <div className="modal-overlay" onClick={() => { setRequestModal(null); setReqNote('') }}>
+          <div className="edit-config-modal" onClick={e => e.stopPropagation()}>
+            <div className="edit-config-header">
+              <h3>Send Request</h3>
+              <button className="modal-close-btn" onClick={() => { setRequestModal(null); setReqNote('') }}>✕</button>
+            </div>
+            <div className="edit-config-fields">
+              <div className="edit-field-row">
+                <label>Request Type</label>
+                <select className="edit-field-select" value={reqType} onChange={e => setReqType(e.target.value)}>
+                  {allRequestTypes().map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="edit-field-row">
+                <label>Note (optional)</label>
+                <input className="edit-field-input" value={reqNote}
+                  onChange={e => setReqNote(e.target.value)} placeholder="Add a note…" />
+              </div>
+              <div className="edit-field-row">
+                <label>Send to</label>
+                <span style={{ fontSize: 13, color: '#475569' }}>{requestRecipient || '—'}</span>
+              </div>
+              <div className="edit-field-row">
+                <label>Item</label>
+                <span style={{ fontSize: 13, color: '#475569' }}>{requestModal.project || requestModal.config || requestModal.sn || '—'}</span>
+              </div>
+            </div>
+            <div className="edit-config-actions">
+              <button className="btn-primary-modal" onClick={() => sendRequest(requestModal)} disabled={reqSending}>
+                {reqSending ? 'Sending…' : '✓ Send Request'}
+              </button>
+              <button className="btn-cancel-modal" onClick={() => { setRequestModal(null); setReqNote('') }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmAcceptModal && (
         <div className="dt-modal-overlay">
           <div className="dt-modal" onClick={e => e.stopPropagation()}>
@@ -976,6 +1044,30 @@ function doAccept(item) {
           </>
         )}
         <span className="dt-my-email-hint">— you'll receive a copy when a 2-day reminder fires</span>
+      </div>
+
+      <div className="dt-my-email-bar">
+        <span className="dt-my-email-label">📋 Request recipient email:</span>
+        {editReqRecipient ? (
+          <>
+            <input className="inv-form-input" type="email" placeholder="recipient@email.com"
+              value={reqRecipientDraft} onChange={e => setReqRecipientDraft(e.target.value)}
+              autoFocus style={{ width: 220 }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { setRequestRecipient(reqRecipientDraft.trim()); setEditReqRecipient(false) }
+                if (e.key === 'Escape') setEditReqRecipient(false)
+              }} />
+            <button className="inv-save-btn" onClick={() => { setRequestRecipient(reqRecipientDraft.trim()); setEditReqRecipient(false) }}>✓</button>
+            <button className="inv-cancel-btn" onClick={() => setEditReqRecipient(false)}>×</button>
+          </>
+        ) : (
+          <>
+            <span className="dt-my-email-val">{requestRecipient || <em style={{ color: '#94a3b8' }}>not set</em>}</span>
+            <button className="bm-pcard-stage-pencil" style={{ fontSize: 13 }}
+              onClick={() => { setReqRecipientDraft(requestRecipient); setEditReqRecipient(true) }}>✎</button>
+          </>
+        )}
+        <span className="dt-my-email-hint">— receives all allocation/materials requests</span>
       </div>
 
       {/* ── Toolbar ───────────────────────────────────────────────── */}
@@ -1155,6 +1247,9 @@ function doAccept(item) {
                             onClick={() => handleAutoTransfer(it)}
                             disabled={transferSending}
                             title={it.email ? `Notify ${it.email}` : 'Set recipient & notify'}>↗</button>
+                          <button className="inv-save-btn" style={{ background: '#059669' }}
+                            onClick={() => { setRequestModal(it); setReqType('Allocation'); setReqNote('') }}
+                            title="Send request">🔖</button>
                           <button className="inv-save-btn" style={{ background: '#64748b' }}
                             onClick={() => setHistoryModal(it)} title="History">📋</button>
 {it.status !== 'Accepted' && (
