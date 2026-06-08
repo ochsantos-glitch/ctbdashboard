@@ -693,7 +693,7 @@ function ConfigSummary({ builds, setBuilds, bom, alerts, allocations, customRows
                     <td className="bm-row-label">BOM Cost</td>
                     {filtered.map(c => {
                       const board = boardOf(c.Config)
-                      const cost  = calcBOMCost(board ? bom.filter(p => p.appliesTo === board) : [], c.Quantity)
+                      const cost  = calcBOMCost(board ? bom.filter(p => p.appliesTo === board) : bom, c.Quantity)
                       const disp  = c.costOverride != null ? c.costOverride : cost
                       return <td key={c.Config} className="bm-cell bm-cell-num">${Math.round(disp).toLocaleString()}{c.costOverride != null && <span className="tm-overridden">*</span>}</td>
                     })}
@@ -714,7 +714,7 @@ function ConfigSummary({ builds, setBuilds, bom, alerts, allocations, customRows
                     <td className="bm-row-label">Mat. Shortage</td>
                     {filtered.map(c => {
                       const board = boardOf(c.Config)
-                      const boardParts = board ? bom.filter(p => p.appliesTo === board) : []
+                      const boardParts = board ? bom.filter(p => p.appliesTo === board) : bom
                       const shortages = boardParts.filter(p => {
                         const usage = builds.reduce((s, b) => s + (p.qtyPerUnit || 1) * (Number(b.Quantity)||0), 0)
                         const ord = Number(p.materialQtyOrdered) || 0
@@ -1177,7 +1177,8 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
               {cfgLabelCell(`# Parts: ${bom.length}`)}
               {filteredCfgs.map(c => {
                 const board  = boardOf(c.Config)
-                const count  = board ? bom.filter(p => p.appliesTo === board).length : bom.length
+                const boardParts = board ? bom.filter(p => p.appliesTo === board) : bom
+                const count  = boardParts.length
                 return <td key={c.Config} className="bm-cell bm-cell-num" style={cw(c.Config)}>{count}</td>
               })}
             </tr>
@@ -1187,7 +1188,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
               {cfgLabelCell('BOM Cost')}
               {filteredCfgs.map(c => {
                 const board = boardOf(c.Config)
-                const cost  = calcBOMCost(board ? bom.filter(p => p.appliesTo === board) : [], c.Quantity)
+                const cost  = calcBOMCost(board ? bom.filter(p => p.appliesTo === board) : bom, c.Quantity)
                 const disp  = c.costOverride != null ? c.costOverride : cost
                 return <td key={c.Config} className="bm-cell bm-cell-num" style={cw(c.Config)}>${Math.round(disp).toLocaleString()}{c.costOverride!=null&&<span className="tm-overridden">*</span>}</td>
               })}
