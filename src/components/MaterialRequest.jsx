@@ -1,14 +1,54 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Html5Qrcode } from 'html5-qrcode'
 
 export default function MaterialRequest({ bom = [], inventoryItems = [], setInventoryItems }) {
   const [requests, setRequests] = useState(() => {
     try { return JSON.parse(localStorage.getItem('material-requests')) || [] } catch { return [] }
   })
-  const [requester, setRequester] = useState('')
-  const [material,  setMaterial]  = useState('')
-  const [qty,       setQty]       = useState(1)
-  const [badgeId,   setBadgeId]   = useState('')
-  const badgeRef = useRef(null)
+  const [requester,    setRequester]    = useState('')
+  const [material,     setMaterial]     = useState('')
+  const [qty,          setQty]          = useState(1)
+  const [badgeId,      setBadgeId]      = useState('')
+  const [scanning,     setScanning]     = useState(false)
+  const [scanError,    setScanError]    = useState('')
+  const badgeRef  = useRef(null)
+  const scannerRef = useRef(null)
+  const SCANNER_ID = 'badge-qr-reader'
+
+  const stopScanner = useCallback(async () => {
+    if (scannerRef.current) {
+      try { await scannerRef.current.stop() } catch {}
+      try { scannerRef.current.clear() } catch {}
+      scannerRef.current = null
+    }
+    setScanning(false)
+  }, [])
+
+  async function startScanner() {
+    setScanError('')
+    setScanning(true)
+    // give DOM time to render the container
+    setTimeout(async () => {
+      try {
+        const scanner = new Html5Qrcode(SCANNER_ID)
+        scannerRef.current = scanner
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 150 } },
+          (decodedText) => {
+            setBadgeId(decodedText)
+            stopScanner()
+          },
+          () => {} // ignore per-frame errors
+        )
+      } catch (err) {
+        setScanError('Camera not available or permission denied.')
+        stopScanner()
+      }
+    }, 100)
+  }
+
+  useEffect(() => () => { stopScanner() }, [stopScanner])
 
   useEffect(() => {
     localStorage.setItem('material-requests', JSON.stringify(requests))
@@ -99,11 +139,12 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
                   value={badgeId} onChange={e => setBadgeId(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
                 <button className="btn-export" style={{ padding:'8px 16px', fontSize:13 }}
-                  onClick={() => badgeRef.current?.focus()} title="Focus badge field for scanner">
-                  ⇄ Scan
+                  onClick={startScanner} title="Open camera to scan badge">
+                  📷 Scan
                 </button>
               </div>
-              <div style={{ fontSize:11, color:'#94a3b8', marginTop:4 }}>Physical badge scanners can scan directly into this field</div>
+              {scanError && <div style={{ fontSize:11, color:'#ef4444', marginTop:4 }}>{scanError}</div>}
+              <div style={{ fontSize:11, color:'#94a3b8', marginTop:4 }}>Camera scan or use a physical badge scanner</div>
             </div>
 
             <button
@@ -197,5 +238,26 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
         </div>
       </div>
     </div>
+
+    {/* ── Camera Scanner Modal ── */}
+    {scanning && (
+      <div className="modal-overlay" onClick={stopScanner}>
+        <div className="edit-config-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+          <div className="edit-config-header">
+            <h3>Scan Badge</h3>
+            <button className="modal-close-btn" onClick={stopScanner}>✕</button>
+          </div>
+          <div style={{ padding: '16px 0 8px' }}>
+            <div id={SCANNER_ID} style={{ width: '100%', borderRadius: 8, overflow: 'hidden' }} />
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#64748b', marginTop: 12 }}>
+              Hold the badge barcode or QR code up to the camera
+            </div>
+          </div>
+          <div className="edit-config-actions">
+            <button className="btn-cancel-modal" onClick={stopScanner}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    )}
   )
 }
