@@ -864,16 +864,16 @@ function BOMPartsTable({ bom, builds, scrollRef, onTableScroll }) {
 
 // ── Unified Current View (config summary + BOM in one aligned table) ─────────
 function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocations, logChange, stageLabel, allBuilds }) {
-  const NUM_FX = 6
+  const NUM_FX = 7
   const [colWidths, setColWidths] = useState(() => {
     try {
       const s = localStorage.getItem('bm-col-widths')
       if (s) {
         const parsed = JSON.parse(s)
-        return parsed.slice(0, 6) // trim any extra from old saves
+        return parsed.slice(0, 7) // trim any extra from old saves
       }
     } catch {}
-    return [120, 180, 130, 140, 80, 70]
+    return [120, 180, 60, 130, 140, 80, 70]
   })
   const SL = colWidths.map((_, i) => colWidths.slice(0, i).reduce((s, w) => s + w, 0))
   const [cfgColWidths, setCfgColWidths] = useState(() => {
@@ -957,12 +957,12 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
   function hdrStyle(ci, extra = {}) {
     return { width: colWidths[ci], maxWidth: colWidths[ci], overflow:'hidden',
       position: 'sticky', left: SL[ci], top: 0, zIndex: 4,
-      background: ci === 4 ? BAL_BG : TH_BG, ...(ci === 5 ? FRZ : {}), ...extra }
+      background: ci === 5 ? BAL_BG : TH_BG, ...(ci === 6 ? FRZ : {}), ...extra }
   }
   function cellStyle(ci, bg = '#fff', extra = {}) {
     return { width: colWidths[ci], maxWidth: colWidths[ci], overflow:'hidden',
       position: 'sticky', left: SL[ci], zIndex: 1,
-      background: ci === 4 ? BAL_BG : bg, ...(ci === 5 ? FRZ : {}), ...extra }
+      background: ci === 5 ? BAL_BG : bg, ...(ci === 6 ? FRZ : {}), ...extra }
   }
   function cw(name) { const w = getCfgW(name); return { width: w, maxWidth: w, overflow:'hidden' } }
   function cfgLabelCell(label, style = {}) {
@@ -1210,10 +1210,11 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                 {[
                   {ci:0, label:'PN'},
                   {ci:1, label:'Description'},
-                  {ci:2, label:'MFR Name'},
-                  {ci:3, label:'MPN'},
-                  {ci:4, label:'Usage', extra:{ color:'#15803d' }, suffix: <span style={{fontWeight:400,fontSize:10,color:'#94a3b8',marginLeft:4}}>({filteredBOM.length}{filteredBOM.length!==bom.length?`/${bom.length}`:''} parts)</span>},
-                  {ci:5, label:'UOM'},
+                  {ci:2, label:'Rev'},
+                  {ci:3, label:'MFR Name'},
+                  {ci:4, label:'MPN'},
+                  {ci:5, label:'Usage', extra:{ color:'#15803d' }, suffix: <span style={{fontWeight:400,fontSize:10,color:'#94a3b8',marginLeft:4}}>({filteredBOM.length}{filteredBOM.length!==bom.length?`/${bom.length}`:''} parts)</span>},
+                  {ci:6, label:'UOM'},
                 ].map(({ci, label, extra={}, suffix}) => (
                   <td key={ci} style={{ ...hdrStyle(ci, extra), padding:0 }}>
                     <div style={{ display:'flex', height:28 }}>
@@ -1273,16 +1274,17 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                 {[
                   { ci:0, val:filterPN,   set:setFilterPN,   ph:'Filter PN…' },
                   { ci:1, val:filterDesc, set:setFilterDesc, ph:'Filter description…' },
-                  { ci:2, val:filterMFR,  set:setFilterMFR,  ph:'Filter MFR…' },
-                  { ci:3, val:filterMPN,  set:setFilterMPN,  ph:'Filter MPN…' },
+                  { ci:3, val:filterMFR,  set:setFilterMFR,  ph:'Filter MFR…' },
+                  { ci:4, val:filterMPN,  set:setFilterMPN,  ph:'Filter MPN…' },
                 ].map(({ ci, val, set, ph }) => (
                   <td key={ci} style={{ position:'sticky', left:SL[ci], top:32, zIndex:5, background:'#f1f5f9', padding:'2px 3px', borderBottom:'2px solid #cbd5e1' }}>
                     <input className="bm-col-filter" placeholder={ph} value={val} onChange={e=>set(e.target.value)}
                       style={{ width:'100%', fontSize:10, padding:'2px 4px', border:'1px solid #e2e8f0', borderRadius:3, background:'#fff' }} />
                   </td>
                 ))}
-                <td style={{ position:'sticky', left:SL[4], top:32, zIndex:5, background:'#f1f5f9', borderBottom:'2px solid #cbd5e1' }} />
-                <td style={{ position:'sticky', left:SL[5], top:32, zIndex:5, background:'#f1f5f9', borderBottom:'2px solid #cbd5e1', ...FRZ }} />
+                <td style={{ position:'sticky', left:SL[2], top:32, zIndex:5, background:'#f1f5f9', borderBottom:'2px solid #cbd5e1' }} />
+                <td style={{ position:'sticky', left:SL[5], top:32, zIndex:5, background:'#f1f5f9', borderBottom:'2px solid #cbd5e1' }} />
+                <td style={{ position:'sticky', left:SL[6], top:32, zIndex:5, background:'#f1f5f9', borderBottom:'2px solid #cbd5e1', ...FRZ }} />
                 {filteredCfgs.map(c => <td key={c.Config} style={{...cw(c.Config), background:'#f1f5f9', borderBottom:'2px solid #cbd5e1', padding:0}} />)}
                 <td style={{ width:DEL_W, minWidth:DEL_W, background:'#eff6ff', borderBottom:'2px solid #cbd5e1', borderLeft:'2px solid #94a3b8' }} />
                 <td style={{ width:DEL_W, minWidth:DEL_W, background:'#f0fdf4', borderBottom:'2px solid #cbd5e1' }} />
@@ -1313,7 +1315,16 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                           onKeyDown={e=>{if(e.key==='Enter')savePart(part.id,'description',partDraft);if(e.key==='Escape')setEditingPart(null)}} />
                       ) : <span className={part.description?'':'tm-na-dash'}>{part.description||'—'}</span>}
                     </td>
-                    <td className="bm-flat-cell bm-editable-cell" style={{...cellStyle(2),fontSize:11,color:'#475569',overflow:'hidden',textOverflow:'ellipsis'}}
+                    <td className="bm-flat-cell bm-editable-cell" style={{...cellStyle(2),fontSize:11,overflow:'hidden',textOverflow:'ellipsis'}}
+                      onClick={()=>{if(!isEdPart('rev')){setEditingPart({partId:part.id,field:'rev'});setPartDraft(part.rev||'')}}}>
+                      {isEdPart('rev') ? (
+                        <input className="bm-inline-input" value={partDraft} autoFocus style={{width:50}}
+                          onChange={e=>setPartDraft(e.target.value)}
+                          onBlur={()=>savePart(part.id,'rev',partDraft)}
+                          onKeyDown={e=>{if(e.key==='Enter')savePart(part.id,'rev',partDraft);if(e.key==='Escape')setEditingPart(null)}} />
+                      ) : <span className={part.rev?'':'tm-na-dash'}>{part.rev||'—'}</span>}
+                    </td>
+                    <td className="bm-flat-cell bm-editable-cell" style={{...cellStyle(3),fontSize:11,color:'#475569',overflow:'hidden',textOverflow:'ellipsis'}}
                       onClick={()=>{if(!isEdPart('supplier')){setEditingPart({partId:part.id,field:'supplier'});setPartDraft(part.supplier||'')}}}>
                       {isEdPart('supplier') ? (
                         <input className="bm-inline-input" value={partDraft} autoFocus style={{width:120}}
@@ -1322,7 +1333,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                           onKeyDown={e=>{if(e.key==='Enter')savePart(part.id,'supplier',partDraft);if(e.key==='Escape')setEditingPart(null)}} />
                       ) : <span className={part.supplier?'':'tm-na-dash'}>{part.supplier||'—'}</span>}
                     </td>
-                    <td className="bm-flat-cell bm-editable-cell" style={{...cellStyle(3),fontFamily:'monospace',fontSize:11,overflow:'hidden',textOverflow:'ellipsis'}}
+                    <td className="bm-flat-cell bm-editable-cell" style={{...cellStyle(4),fontFamily:'monospace',fontSize:11,overflow:'hidden',textOverflow:'ellipsis'}}
                       onClick={()=>{if(!isEdPart('mpn')){setEditingPart({partId:part.id,field:'mpn'});setPartDraft(part.mpn||'')}}}>
                       {isEdPart('mpn') ? (
                         <input className="bm-inline-input" value={partDraft} autoFocus style={{width:130}}
@@ -1331,7 +1342,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                           onKeyDown={e=>{if(e.key==='Enter')savePart(part.id,'mpn',partDraft);if(e.key==='Escape')setEditingPart(null)}} />
                       ) : <span className={part.mpn?'':'tm-na-dash'}>{part.mpn||'—'}</span>}
                     </td>
-                    <td className="bm-flat-cell bm-editable-cell bm-cell-num" style={{...cellStyle(4),fontSize:12}} title="Click to edit qty/unit">
+                    <td className="bm-flat-cell bm-editable-cell bm-cell-num" style={{...cellStyle(5),fontSize:12}} title="Click to edit qty/unit">
                       {isEdPart('qtyPerUnit') ? (
                         <input className="bm-inline-input" type="number" value={partDraft} autoFocus style={{width:60,textAlign:'right'}}
                           onChange={e=>setPartDraft(e.target.value)}
@@ -1343,7 +1354,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                         </div>
                       )}
                     </td>
-                    <td className="bm-flat-cell bm-editable-cell" style={cellStyle(5)}
+                    <td className="bm-flat-cell bm-editable-cell" style={cellStyle(6)}
                       onClick={()=>{if(!isEdPart('uom')){setEditingPart({partId:part.id,field:'uom'});setPartDraft(part.uom||'')}}}>
                       {isEdPart('uom') ? (
                         <input className="bm-inline-input" value={partDraft} autoFocus style={{width:60}}
@@ -1395,8 +1406,8 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
               })}
               {filteredBOM.length > 0 && filteredCfgs.length > 0 && (
                 <tr className="bm-flat-footer">
-                  <td colSpan={5} style={{ textAlign:'right', fontWeight:700, fontSize:11, position:'sticky', left:0, zIndex:1, background:'#f8fafc' }}>Total usage per config →</td>
-                  <td style={{ position:'sticky', left:SL[5], zIndex:1, background:'#f8fafc', ...FRZ }}></td>
+                  <td colSpan={6} style={{ textAlign:'right', fontWeight:700, fontSize:11, position:'sticky', left:0, zIndex:1, background:'#f8fafc' }}>Total usage per config →</td>
+                  <td style={{ position:'sticky', left:SL[6], zIndex:1, background:'#f8fafc', ...FRZ }}></td>
                   {filteredCfgs.map(c => {
                     const total = filteredBOM.reduce((s,p) => s+(p.qtyPerUnit||1)*(Number(c.Quantity)||0), 0)
                     return <td key={c.Config} className="bm-flat-cell bm-cell-num" style={{...cw(c.Config), fontWeight:700}}>{total>0?total.toLocaleString():'—'}</td>
@@ -1540,6 +1551,7 @@ const BOM_COLS = [
   { key: 'kpn',                label: 'KPN',              width: 110, mono: true },
   { key: 'lab126pn',           label: 'Lab126 PN',        width: 110, mono: true },
   { key: 'description',        label: 'Description',      width: 200 },
+  { key: 'rev',                label: 'Rev',              width: 70  },
   { key: 'supplier',           label: 'MFR',              width: 160 },
   { key: 'mpn',                label: 'MPN',              width: 160 },
   { key: 'qtyPerUnit',         label: 'QTY Per Device',   width: 90,  num: true },
