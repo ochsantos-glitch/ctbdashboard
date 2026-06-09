@@ -24,29 +24,33 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
     setScanning(false)
   }, [])
 
-  async function startScanner() {
+  function startScanner() {
     setScanError('')
     setScanning(true)
-    // give DOM time to render the container
-    setTimeout(async () => {
+  }
+
+  useEffect(() => {
+    if (!scanning) return
+    let mounted = true
+    const run = async () => {
       try {
         const scanner = new Html5Qrcode(SCANNER_ID)
+        if (!mounted) return
         scannerRef.current = scanner
         await scanner.start(
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 250, height: 150 } },
-          (decodedText) => {
-            setBadgeId(decodedText)
-            stopScanner()
-          },
-          () => {} // ignore per-frame errors
+          (decodedText) => { setBadgeId(decodedText); stopScanner() },
+          () => {}
         )
       } catch (err) {
-        setScanError('Camera not available or permission denied.')
+        if (mounted) setScanError('Camera not available or permission denied.')
         stopScanner()
       }
-    }, 100)
-  }
+    }
+    run()
+    return () => { mounted = false }
+  }, [scanning, stopScanner])
 
   useEffect(() => () => { stopScanner() }, [stopScanner])
 
