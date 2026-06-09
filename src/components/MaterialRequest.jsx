@@ -55,22 +55,25 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
   }, [requests])
 
   const materialOptions = [
-    ...bom.map(p => ({ id: p.id, label: p.description || p.kpn || p.lab126pn || p.id, source: 'bom' })),
-    ...inventoryItems.map(i => ({ id: i.id, label: i.material, source: 'inventory' })),
-  ].filter((m, idx, arr) => m.label && arr.findIndex(x => x.label === m.label) === idx)
+    ...bom.map(p => ({ id: p.id, pn: p.kpn || p.lab126pn || p.id, description: p.description || '', source: 'bom' })),
+    ...inventoryItems.map(i => ({ id: i.id, pn: i.material, description: '', source: 'inventory' })),
+  ].filter((m, idx, arr) => m.pn && arr.findIndex(x => x.pn === m.pn) === idx)
+
+  const selectedPart = materialOptions.find(m => m.pn === material) ?? null
 
   const canSubmit = requester.trim() && material && Number(qty) >= 1
 
   function handleSubmit() {
     if (!canSubmit) return
     setRequests(prev => [{
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      badgeId:   badgeId.trim(),
-      requester: requester.trim(),
-      material,
-      qty:       Number(qty),
-      status:    'Pending',
+      id:          crypto.randomUUID(),
+      timestamp:   new Date().toISOString(),
+      badgeId:     badgeId.trim(),
+      requester:   requester.trim(),
+      material:    material,
+      description: selectedPart?.description || '',
+      qty:         Number(qty),
+      status:      'Pending',
     }, ...prev])
     setRequester(''); setMaterial(''); setQty(1); setBadgeId('')
   }
@@ -120,10 +123,19 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
               <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#475569', marginBottom:6 }}>Material / item</label>
               <select className="filter-select" style={{ width:'100%', fontSize:14, padding:'8px 12px', height:40 }}
                 value={material} onChange={e => setMaterial(e.target.value)}>
-                <option value="">— select material —</option>
-                {materialOptions.map(m => <option key={m.id} value={m.label}>{m.label}</option>)}
+                <option value="">— select PN —</option>
+                {materialOptions.map(m => <option key={m.id} value={m.pn}>{m.pn}</option>)}
               </select>
             </div>
+
+            {selectedPart && (
+              <div>
+                <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#475569', marginBottom:6 }}>Description</label>
+                <div style={{ padding:'8px 12px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, fontSize:14, color: selectedPart.description ? '#1e293b' : '#94a3b8' }}>
+                  {selectedPart.description || '—'}
+                </div>
+              </div>
+            )}
 
             <div>
               <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#475569', marginBottom:6 }}>Quantity</label>
@@ -199,7 +211,8 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
                 <th>Timestamp</th>
                 <th>Badge ID</th>
                 <th>Requester</th>
-                <th>Material</th>
+                <th>PN</th>
+                <th>Description</th>
                 <th style={{ textAlign:'right' }}>Qty</th>
                 <th style={{ textAlign:'center' }}>Status</th>
                 <th style={{ width:140 }}></th>
@@ -207,14 +220,15 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
             </thead>
             <tbody>
               {requests.length === 0 ? (
-                <tr><td colSpan={8} className="inv-empty">No records captured yet</td></tr>
+                <tr><td colSpan={9} className="inv-empty">No records captured yet</td></tr>
               ) : requests.map((r, idx) => (
                 <tr key={r.id} className="inv-data-row">
                   <td style={{ color:'#94a3b8', fontSize:12 }}>{requests.length - idx}</td>
                   <td style={{ fontSize:12, color:'#475569' }}>{new Date(r.timestamp).toLocaleString()}</td>
                   <td style={{ fontFamily:'monospace', fontSize:12 }}>{r.badgeId || '—'}</td>
                   <td style={{ fontWeight:600 }}>{r.requester}</td>
-                  <td style={{ fontSize:13 }}>{r.material}</td>
+                  <td style={{ fontFamily:'monospace', fontSize:12 }}>{r.material}</td>
+                  <td style={{ fontSize:12, color:'#475569' }}>{r.description || '—'}</td>
                   <td style={{ textAlign:'right', fontWeight:700 }}>{r.qty}</td>
                   <td style={{ textAlign:'center' }}>
                     <span style={{ padding:'2px 10px', borderRadius:10, fontSize:11, fontWeight:600, ...statusChip(r.status) }}>
