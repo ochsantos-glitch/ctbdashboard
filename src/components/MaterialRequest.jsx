@@ -1,58 +1,101 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
+import { useState, useEffect, useRef } from 'react'
+
+// ── Camera Scanner component ──────────────────────────────────────────────────
+function CameraScanner({ onScan, onClose }) {
+  const videoRef  = useRef(null)
+  const streamRef = useRef(null)
+  const animRef   = useRef(null)
+  const [error, setError] = useState('')
+  const [ready, setReady] = useState(false)
+  const hasBarcodeDetector = typeof window !== 'undefined' && 'BarcodeDetector' in window
+
+  useEffect(() => {
+    let detector
+    let cancelled = false
+
+    async function start() {
+      try {
+        if (hasBarcodeDetector) {
+          detector = new window.BarcodeDetector({
+            formats: ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'codabar', 'itf']
+          })
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+        streamRef.current = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          await videoRef.current.play()
+          setReady(true)
+        }
+        if (detector) {
+          const scan = async () => {
+            if (cancelled || !videoRef.current) return
+            if (videoRef.current.readyState >= 2) {
+              try {
+                const codes = await detector.detect(videoRef.current)
+                if (codes.length > 0) { onScan(codes[0].rawValue); return }
+              } catch {}
+            }
+            animRef.current = requestAnimationFrame(scan)
+          }
+          animRef.current = requestAnimationFrame(scan)
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.name === 'NotAllowedError' ? 'Camera permission denied. Please allow camera access and try again.' : `Camera error: ${err.message}`)
+      }
+    }
+
+    start()
+    return () => {
+      cancelled = true
+      if (animRef.current) cancelAnimationFrame(animRef.current)
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
+    }
+  }, [hasBarcodeDetector, onScan])
+
+  return (
+    <div style={{ padding: '0 0 8px' }}>
+      {error ? (
+        <div style={{ color: '#ef4444', fontSize: 13, padding: '12px 0' }}>{error}</div>
+      ) : (
+        <>
+          <video ref={videoRef} style={{ width: '100%', borderRadius: 8, background: '#000', display: 'block' }}
+            muted playsInline />
+          {ready && !hasBarcodeDetector && (
+            <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 8, textAlign: 'center' }}>
+              Auto-detection not supported in this browser — use a physical scanner or type the badge ID manually.
+            </div>
+          )}
+          {ready && hasBarcodeDetector && (
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 8, textAlign: 'center' }}>
+              Hold the badge barcode or QR code up to the camera
+            </div>
+          )}
+          {!ready && !error && (
+            <div style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', padding: 12 }}>Starting camera…</div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
 
 export default function MaterialRequest({ bom = [], inventoryItems = [], setInventoryItems }) {
   const [requests, setRequests] = useState(() => {
     try { return JSON.parse(localStorage.getItem('material-requests')) || [] } catch { return [] }
   })
-  const [requester,    setRequester]    = useState('')
-  const [material,     setMaterial]     = useState('')
-  const [qty,          setQty]          = useState(1)
-  const [badgeId,      setBadgeId]      = useState('')
-  const [scanning,     setScanning]     = useState(false)
-  const [scanError,    setScanError]    = useState('')
-  const badgeRef  = useRef(null)
-  const scannerRef = useRef(null)
-  const SCANNER_ID = 'badge-qr-reader'
+  const [requester, setRequester] = useState('')
+  const [material,  setMaterial]  = useState('')
+  const [qty,       setQty]       = useState(1)
+  const [badgeId,   setBadgeId]   = useState('')
+  const [scanning,  setScanning]  = useState(false)
+  const [scanError, setScanError] = useState('')
+  const badgeRef = useRef(null)
 
-  const stopScanner = useCallback(async () => {
-    if (scannerRef.current) {
-      try { await scannerRef.current.stop() } catch {}
-      try { scannerRef.current.clear() } catch {}
-      scannerRef.current = null
-    }
-    setScanning(false)
-  }, [])
-
-  function startScanner() {
-    setScanError('')
-    setScanning(true)
-  }
-
-  useEffect(() => {
-    if (!scanning) return
-    let mounted = true
-    const run = async () => {
-      try {
-        const scanner = new Html5Qrcode(SCANNER_ID)
-        if (!mounted) return
-        scannerRef.current = scanner
-        await scanner.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 150 } },
-          (decodedText) => { setBadgeId(decodedText); stopScanner() },
-          () => {}
-        )
-      } catch (err) {
-        if (mounted) setScanError('Camera not available or permission denied.')
-        stopScanner()
-      }
-    }
-    run()
-    return () => { mounted = false }
-  }, [scanning, stopScanner])
-
-  useEffect(() => () => { stopScanner() }, [stopScanner])
+  function stopScanner() { setScanning(false) }
+  function startScanner() { setScanError(''); setScanning(true) }
+  function handleScan(code) { setBadgeId(code); setScanning(false) }
 
   useEffect(() => {
     localStorage.setItem('material-requests', JSON.stringify(requests))
@@ -265,11 +308,8 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
             <h3>Scan Badge</h3>
             <button className="modal-close-btn" onClick={stopScanner}>✕</button>
           </div>
-          <div style={{ padding: '16px 0 8px' }}>
-            <div id={SCANNER_ID} style={{ width: '100%', borderRadius: 8, overflow: 'hidden' }} />
-            <div style={{ textAlign: 'center', fontSize: 12, color: '#64748b', marginTop: 12 }}>
-              Hold the badge barcode or QR code up to the camera
-            </div>
+          <div style={{ padding: '12px 0 4px' }}>
+            <CameraScanner onScan={handleScan} onClose={stopScanner} />
           </div>
           <div className="edit-config-actions">
             <button className="btn-cancel-modal" onClick={stopScanner}>Cancel</button>
