@@ -314,24 +314,24 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
           </table>
         </div>
       </div>
-    </div>
 
-    {/* ── Camera Scanner Modal ── */}
-    {scanning && (
-      <div className="modal-overlay" onClick={stopScanner}>
-        <div className="edit-config-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
-          <div className="edit-config-header">
-            <h3>Scan Badge</h3>
-            <button className="modal-close-btn" onClick={stopScanner}>✕</button>
-          </div>
-          <div style={{ padding: '12px 0 4px' }}>
-            <CameraScanner onScan={handleScan} onClose={stopScanner} />
-          </div>
-          <div className="edit-config-actions">
-            <button className="btn-cancel-modal" onClick={stopScanner}>Cancel</button>
+      {/* ── Camera Scanner Modal ── */}
+      {scanning && (
+        <div className="modal-overlay" onClick={stopScanner}>
+          <div className="edit-config-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+            <div className="edit-config-header">
+              <h3>Scan Badge</h3>
+              <button className="modal-close-btn" onClick={stopScanner}>✕</button>
+            </div>
+            <div style={{ padding: '12px 0 4px' }}>
+              <CameraScanner onScan={handleScan} onClose={stopScanner} />
+            </div>
+            <div className="edit-config-actions">
+              <button className="btn-cancel-modal" onClick={stopScanner}>Cancel</button>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
+    </div>
   )
 }
