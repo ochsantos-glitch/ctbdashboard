@@ -177,7 +177,7 @@ export default function MaterialRequest({ bom = [], inventoryItems = [], setInve
             <div>
               <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#475569', marginBottom:6 }}>Requester name</label>
               <input className="inv-form-input" style={{ width:'100%', fontSize:14 }}
-                placeholder="e.g. Juan dela Cruz"
+                placeholder="e.g. John Smith"
                 value={requester} onChange={e => setRequester(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
             </div>
