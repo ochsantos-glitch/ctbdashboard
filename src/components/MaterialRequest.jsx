@@ -20,7 +20,15 @@ function CameraScanner({ onScan, onClose }) {
             formats: ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'codabar', 'itf']
           })
         }
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+
+        // Try back camera first (mobile), fall back to any camera (desktop)
+        let stream
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        }
+
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
         streamRef.current = stream
         if (videoRef.current) {
@@ -42,7 +50,15 @@ function CameraScanner({ onScan, onClose }) {
           animRef.current = requestAnimationFrame(scan)
         }
       } catch (err) {
-        if (!cancelled) setError(err.name === 'NotAllowedError' ? 'Camera permission denied. Please allow camera access and try again.' : `Camera error: ${err.message}`)
+        if (!cancelled) {
+          if (err.name === 'NotAllowedError') {
+            setError('Camera permission denied. Click the camera icon in your browser address bar to allow access.')
+          } else if (err.name === 'NotFoundError') {
+            setError('No camera found on this device.')
+          } else {
+            setError(`Camera error: ${err.message}`)
+          }
+        }
       }
     }
 
