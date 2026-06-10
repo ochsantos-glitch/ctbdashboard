@@ -138,7 +138,6 @@ function App() {
     { id: 'budget',      label: 'Budget' },
     { id: 'bomExplorer', label: 'BOM Explorer' },
     { id: 'suppliers',   label: 'Suppliers' },
-    { id: 'upload',      label: 'Upload' },
     { id: 'buildMatrix', label: 'Build Matrix' },
     { id: 'alerts',      label: 'Alerts', badge: alertCount },
     { id: 'orders',      label: 'Orders' },
