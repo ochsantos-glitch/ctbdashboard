@@ -49,7 +49,7 @@ function boardOf(configName) {
   return null
 }
 
-export default function Inventory({ bom = [], builds = [], projects = [], activeProjectId = null, items: itemsProp, setItems: setItemsProp }) {
+export default function Inventory({ bom = [], setBom, builds = [], projects = [], activeProjectId = null, items: itemsProp, setItems: setItemsProp }) {
   const [localItems, setLocalItems] = useState(() => {
     try { const s = localStorage.getItem('inventory-items'); return s ? JSON.parse(s) : [] } catch { return [] }
   })
@@ -273,7 +273,7 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
         </div>
       )}
 
-      {activeTab === 'upload' && <UploadPanel />}
+      {activeTab === 'upload' && <UploadPanel bom={bom} setBom={setBom} />}
 
       {activeTab === 'manual' && <>
       {/* ── Summary cards ─────────────────────────────────────────── */}

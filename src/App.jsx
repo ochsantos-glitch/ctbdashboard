@@ -188,7 +188,7 @@ function App() {
           />
         )
       case 'inventory':
-        return <Inventory bom={bom} builds={builds} projects={projects} activeProjectId={resolvedActiveId} items={inventoryItems} setItems={setInventoryItems} />
+        return <Inventory bom={bom} setBom={setBom} builds={builds} projects={projects} activeProjectId={resolvedActiveId} items={inventoryItems} setItems={setInventoryItems} />
       case 'requests':
         return <MaterialRequest bom={bom} inventoryItems={inventoryItems} setInventoryItems={setInventoryItems} />
       case 'msdevtrack':
