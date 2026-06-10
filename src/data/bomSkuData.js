@@ -218,10 +218,10 @@ function genBOM() {
     const pool = i < 100 ? MECH : PKG_M
     addPart(2, pn, rev(i), pick(PURCH_DESCS, i),
       pick([1,1,1,2,3,4,6,8,10,14,25,100], i),
-      Array.from({ length: cnt }, (_, s) => ({
-        mfr: pick(pool, i + s * 3),
-        mpn: pn,
-      })))
+      Array.from({ length: cnt }, (_, s) => {
+        const m = pick(pool, i + s * 3)
+        return { mfr: typeof m === 'string' ? m : m.n, mpn: pn }
+      }))
   }
 
   // ── L3: PCBs (50) — 20-XXXXX ─────────────────────────────────────────────

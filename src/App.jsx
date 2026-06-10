@@ -65,7 +65,7 @@ function App() {
     kpn:         r.pn || '',
     description: r.description || '',
     rev:         r.rev || '',
-    supplier:    r.mfr || '',
+    supplier:    (r.mfr && typeof r.mfr === 'object') ? (r.mfr.n || '') : (r.mfr || ''),
     mpn:         r.mpn || '',
     qtyPerUnit:  Number(r.usage) || 1,
     category:    r.level === 0 ? 'SKU' : r.level === 1 ? 'Assembly' : r.level === 2 ? 'Sub-Assembly' : 'Component',
@@ -75,10 +75,16 @@ function App() {
     try {
       const s = localStorage.getItem('dashboard-bom')
       const saved = s ? JSON.parse(s) : initialBom
+      // Migrate: fix any parts where supplier was saved as an object {n,a} instead of a string
+      const sanitized = saved.map(p =>
+        p.supplier && typeof p.supplier === 'object'
+          ? { ...p, supplier: p.supplier.n || '' }
+          : p
+      )
       // Merge BOM Explorer parts — add any not already present by kpn
-      const existingKpns = new Set(saved.map(p => p.kpn).filter(Boolean))
+      const existingKpns = new Set(sanitized.map(p => p.kpn).filter(Boolean))
       const newParts = explorerParts.filter(p => p.kpn && !existingKpns.has(p.kpn))
-      return newParts.length > 0 ? [...saved, ...newParts] : saved
+      return newParts.length > 0 ? [...sanitized, ...newParts] : sanitized
     } catch { return [...initialBom, ...explorerParts] }
   })
   const [builds, setBuilds] = useState(() => {
