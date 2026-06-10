@@ -209,11 +209,11 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                       <th>Revision</th>
                       <th>MFR</th>
                       <th>MPN</th>
-                      <th>Project</th>
-                      <th>Category</th>
                       <th style={{ textAlign:'right' }}>Incoming</th>
                       <th style={{ textAlign:'right' }}>Qty Needed</th>
                       <th style={{ textAlign:'right' }}>Balance</th>
+                      <th>Project</th>
+                      <th>Category</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -235,17 +235,17 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                           </td>
                           <td style={{ fontSize:12, color:'#475569' }}>{part.supplier || <span style={{ color:'#94a3b8' }}>—</span>}</td>
                           <td style={{ fontSize:11, fontFamily:'monospace' }}>{part.mpn || <span style={{ color:'#94a3b8' }}>—</span>}</td>
+                          <td style={{ textAlign:'right', fontWeight:600 }}>{incoming != null ? incoming.toLocaleString() : '—'}</td>
+                          <td style={{ textAlign:'right', fontWeight:700 }}>{qtyNeeded > 0 ? qtyNeeded.toLocaleString() : '—'}</td>
+                          <td style={{ textAlign:'right', fontWeight:700, color: balance == null ? '#94a3b8' : balance < 0 ? '#ef4444' : '#16a34a' }}>
+                            {balance == null ? '—' : `${balance >= 0 ? '+' : ''}${balance.toLocaleString()}`}
+                          </td>
                           <td>
                             {projName
                               ? <span style={{ padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dcfce7', color:'#15803d' }}>{projName}</span>
                               : <span style={{ color:'#94a3b8' }}>—</span>}
                           </td>
                           <td style={{ fontSize:11 }}>{part.category || '—'}</td>
-                          <td style={{ textAlign:'right', fontWeight:600 }}>{incoming != null ? incoming.toLocaleString() : '—'}</td>
-                          <td style={{ textAlign:'right', fontWeight:700 }}>{qtyNeeded > 0 ? qtyNeeded.toLocaleString() : '—'}</td>
-                          <td style={{ textAlign:'right', fontWeight:700, color: balance == null ? '#94a3b8' : balance < 0 ? '#ef4444' : '#16a34a' }}>
-                            {balance == null ? '—' : `${balance >= 0 ? '+' : ''}${balance.toLocaleString()}`}
-                          </td>
                         </tr>
                       )
                     })}
@@ -253,7 +253,7 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                   {filteredBOM.length > 0 && (
                     <tfoot>
                       <tr className="bom-total-row">
-                        <td colSpan={7}><strong>Total Qty Needed</strong></td>
+                        <td colSpan={5}><strong>Total Qty Needed</strong></td>
                         <td style={{ textAlign:'right' }}>
                           <strong>{filteredBOM.reduce((s, p) => {
                             const rb = filteredBuilds.filter(b => boardOf(b.Config) === p.appliesTo)
