@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import './App.css'
 import { bomData as initialBom } from './data/bomData'
+import { bomPartsOnly } from './data/bomSkuData'
 import { buildData as initialBuilds } from './buildData'
 import Dashboard from './components/Dashboard'
 import Budget from './components/Budget'
@@ -59,8 +60,26 @@ function App() {
     const p = new URLSearchParams(window.location.search)
     return { action: p.get('action'), id: p.get('id') }
   })
-  const [bom,    setBom]    = useState(() => {
-    try { const s = localStorage.getItem('dashboard-bom'); return s ? JSON.parse(s) : initialBom } catch { return initialBom }
+  const explorerParts = bomPartsOnly.map(r => ({
+    id:          r.id || crypto.randomUUID(),
+    kpn:         r.pn || '',
+    description: r.description || '',
+    rev:         r.rev || '',
+    supplier:    r.mfr || '',
+    mpn:         r.mpn || '',
+    qtyPerUnit:  Number(r.usage) || 1,
+    category:    r.level === 0 ? 'SKU' : r.level === 1 ? 'Assembly' : r.level === 2 ? 'Sub-Assembly' : 'Component',
+  }))
+
+  const [bom, setBom] = useState(() => {
+    try {
+      const s = localStorage.getItem('dashboard-bom')
+      const saved = s ? JSON.parse(s) : initialBom
+      // Merge BOM Explorer parts — add any not already present by kpn
+      const existingKpns = new Set(saved.map(p => p.kpn).filter(Boolean))
+      const newParts = explorerParts.filter(p => p.kpn && !existingKpns.has(p.kpn))
+      return newParts.length > 0 ? [...saved, ...newParts] : saved
+    } catch { return [...initialBom, ...explorerParts] }
   })
   const [builds, setBuilds] = useState(() => {
     try {
