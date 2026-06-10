@@ -216,11 +216,13 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                       <th style={{ textAlign:'right' }}>Balance</th>
                       <th>Project</th>
                       <th>Category</th>
+                      <th>PO #</th>
+                      <th>Received Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredBOM.length === 0 ? (
-                      <tr><td colSpan={10} className="inv-empty">No parts match filters.</td></tr>
+                      <tr><td colSpan={12} className="inv-empty">No parts match filters.</td></tr>
                     ) : filteredBOM.map(part => {
                       const relBuilds = filteredBuilds.filter(b => boardOf(b.Config) === part.appliesTo || boardOf(b.Config) === null)
                       const qtyNeeded = relBuilds.reduce((s, b) => s + (part.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
@@ -248,6 +250,8 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                               : <span style={{ color:'#94a3b8' }}>—</span>}
                           </td>
                           <td style={{ fontSize:11 }}>{part.category || '—'}</td>
+                          <td style={{ fontSize:12 }}>{part.po || <span style={{ color:'#94a3b8' }}>—</span>}</td>
+                          <td style={{ fontSize:12 }}>{part.receivedDate || <span style={{ color:'#94a3b8' }}>—</span>}</td>
                         </tr>
                       )
                     })}
@@ -256,6 +260,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                     <tfoot>
                       <tr className="bom-total-row">
                         <td colSpan={5}><strong>Total Qty Needed</strong></td>
+
                         <td style={{ textAlign:'right' }}>
                           <strong>{filteredBOM.reduce((s, p) => {
                             const rb = filteredBuilds.filter(b => boardOf(b.Config) === p.appliesTo)
