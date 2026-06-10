@@ -278,7 +278,8 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                       const relBuilds = filteredBuilds.filter(b => boardOf(b.Config) === part.appliesTo || boardOf(b.Config) === null)
                       const qtyNeeded = relBuilds.reduce((s, b) => s + (part.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
                       const incoming  = part.deliveryQty != null ? Number(part.deliveryQty) : (Number(part.materialQtyOrdered) || null)
-                      const balance   = incoming != null ? incoming - qtyNeeded : null
+                      const noStock   = (incoming == null || incoming === 0) && qtyNeeded > 0
+                      const balance   = (incoming != null || qtyNeeded > 0) ? (incoming ?? 0) - qtyNeeded : null
                       const stageSet  = [...new Set(relBuilds.map(b => b.Stage).filter(Boolean))]
                       const projName  = activeProjectName
                       return (
@@ -290,10 +291,17 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                           </td>
                           <td style={{ fontSize:12, color:'#475569' }}>{part.supplier || <span style={{ color:'#94a3b8' }}>—</span>}</td>
                           <td style={{ fontSize:11, fontFamily:'monospace' }}>{part.mpn || <span style={{ color:'#94a3b8' }}>—</span>}</td>
-                          <td style={{ textAlign:'right', fontWeight:600 }}>{incoming != null ? incoming.toLocaleString() : '—'}</td>
+                          <td style={{ textAlign:'right', fontWeight:600, color: noStock ? '#ef4444' : undefined }}>
+                            {incoming != null ? incoming.toLocaleString() : (noStock ? '0' : '—')}
+                          </td>
                           <td style={{ textAlign:'right', fontWeight:700 }}>{qtyNeeded > 0 ? qtyNeeded.toLocaleString() : '—'}</td>
-                          <td style={{ textAlign:'right', fontWeight:700, color: balance == null ? '#94a3b8' : balance < 0 ? '#ef4444' : '#16a34a' }}>
-                            {balance == null ? '—' : `${balance >= 0 ? '+' : ''}${balance.toLocaleString()}`}
+                          <td style={{ textAlign:'right', fontWeight:700, color: balance == null ? '#94a3b8' : balance < 0 ? '#ef4444' : '#16a34a', lineHeight: 1.2 }}>
+                            {balance == null ? '—' : (
+                              <>
+                                {`${balance >= 0 ? '+' : ''}${balance.toLocaleString()}`}
+                                {noStock && <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', letterSpacing: '0.03em' }}>NO STOCK</div>}
+                              </>
+                            )}
                           </td>
                           <td>
                             {projName
