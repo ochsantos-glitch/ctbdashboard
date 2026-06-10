@@ -216,6 +216,43 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
             </div>
           ) : (
             <>
+              {/* Alert summary */}
+              {(() => {
+                const noIncoming = filteredBOM.filter(p => {
+                  const inc = p.deliveryQty != null ? Number(p.deliveryQty) : (Number(p.materialQtyOrdered) || null)
+                  return inc == null
+                }).length
+                const noStock = filteredBOM.filter(p => {
+                  const inc = p.deliveryQty != null ? Number(p.deliveryQty) : (Number(p.materialQtyOrdered) || null)
+                  const need = filteredBuilds.filter(b => boardOf(b.Config) === p.appliesTo || boardOf(b.Config) === null)
+                    .reduce((s, b) => s + (p.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
+                  return (inc == null || inc === 0) && need > 0
+                }).length
+                if (noIncoming === 0 && noStock === 0) return null
+                return (
+                  <div style={{ display:'flex', gap:10, marginBottom:10, flexWrap:'wrap' }}>
+                    {noIncoming > 0 && (
+                      <div style={{ display:'flex', alignItems:'center', gap:7, background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:8, padding:'7px 14px' }}>
+                        <span style={{ fontSize:18, lineHeight:1 }}>⚠️</span>
+                        <div>
+                          <div style={{ fontWeight:700, fontSize:13, color:'#c2410c' }}>{noIncoming.toLocaleString()} parts</div>
+                          <div style={{ fontSize:11, color:'#9a3412' }}>No incoming qty set</div>
+                        </div>
+                      </div>
+                    )}
+                    {noStock > 0 && (
+                      <div style={{ display:'flex', alignItems:'center', gap:7, background:'#fef2f2', border:'1px solid #fecaca', borderRadius:8, padding:'7px 14px' }}>
+                        <span style={{ fontSize:18, lineHeight:1 }}>🚨</span>
+                        <div>
+                          <div style={{ fontWeight:700, fontSize:13, color:'#dc2626' }}>{noStock.toLocaleString()} parts</div>
+                          <div style={{ fontSize:11, color:'#991b1b' }}>Have demand but no stock</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* Filters */}
               <div className="inv-toolbar" style={{ flexWrap:'wrap', gap:8, marginBottom:12 }}>
                 <div className="proj-search-wrap">
