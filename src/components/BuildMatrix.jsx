@@ -1061,12 +1061,13 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
       )}
 
       <div className="bm-unified-scroll">
-        <table style={{ tableLayout:'fixed', width: colWidths.reduce((s,w)=>s+w,0) + filteredCfgs.reduce((s,c)=>s+getCfgW(c.Config),0) + DEL_W*2, borderCollapse:'collapse', fontSize:11, background:'#fff' }}>
+        <table style={{ tableLayout:'fixed', width: colWidths.reduce((s,w)=>s+w,0) + filteredCfgs.reduce((s,c)=>s+getCfgW(c.Config),0) + DEL_W*2 + 36, borderCollapse:'collapse', fontSize:11, background:'#fff' }}>
           <colgroup>
             {colWidths.map((w,i) => <col key={i} style={{ width:w }} />)}
             {filteredCfgs.map(c => <col key={c.Config} style={{ width: getCfgW(c.Config) }} />)}
             <col style={{ width: DEL_W }} />
             <col style={{ width: DEL_W }} />
+            <col style={{ width: 36 }} />
           </colgroup>
           <thead />
           <tbody>
@@ -1218,6 +1219,8 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                   zIndex:3, verticalAlign:'middle', textAlign:'center' }}>
                   Balance Qty
                 </td>
+                <td style={{ position:'sticky', top:0, width:36, minWidth:36,
+                  background:'#f8fafc', border:'1px solid #e2e8f0', zIndex:3 }} />
               </tr>
               {/* Per-column BOM filter row — sticky just below column headers */}
               <tr style={{ background:'#f1f5f9' }}>
@@ -1238,6 +1241,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                 {filteredCfgs.map(c => <td key={c.Config} style={{...cw(c.Config), background:'#f1f5f9', borderBottom:'2px solid #cbd5e1', padding:0}} />)}
                 <td style={{ width:DEL_W, minWidth:DEL_W, background:'#eff6ff', borderBottom:'2px solid #cbd5e1', borderLeft:'2px solid #94a3b8' }} />
                 <td style={{ width:DEL_W, minWidth:DEL_W, background:'#f0fdf4', borderBottom:'2px solid #cbd5e1' }} />
+                <td style={{ width:36, minWidth:36, background:'#f8fafc', borderBottom:'2px solid #cbd5e1' }} />
               </tr>
               {filteredBOM.length === 0 ? (
                 <tr><td colSpan={NUM_FX+filteredCfgs.length} className="bm-empty-row">No parts match filters.</td></tr>
@@ -1351,6 +1355,15 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                           </div>
                         : <span className="tm-na-dash">—</span>}
                     </td>
+                    {/* Delete row */}
+                    <td style={{ width:36, minWidth:36, textAlign:'center', verticalAlign:'middle', background:'#fff', padding:'0 2px' }}>
+                      <button className="bm-hdr-btn bm-hdr-del"
+                        style={{ fontSize:13, padding:'2px 5px' }}
+                        title="Remove part"
+                        onClick={() => setBom(prev => prev.filter(p => p.id !== part.id))}>
+                        ✕
+                      </button>
+                    </td>
                   </tr>
                 )
               })}
@@ -1364,6 +1377,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                   })}
                   <td style={{ width:DEL_W, background:'#eff6ff', borderLeft:'2px solid #94a3b8' }} />
                   <td style={{ width:DEL_W, background:'#f0fdf4' }} />
+                  <td style={{ width:36, background:'#f8fafc' }} />
                 </tr>
               )}
             </>}
