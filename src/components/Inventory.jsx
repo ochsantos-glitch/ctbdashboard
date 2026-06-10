@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import UploadPanel from './UploadPanel'
+import BOMExplorer from './BOMExplorer'
 
 const EMPTY_FORM = { material: '', po: '', qty: '', receivedDate: '' }
 
@@ -170,6 +171,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
             BOM Materials {bom.length > 0 && <span style={{ marginLeft:4, fontSize:11, opacity:0.7 }}>({bom.length})</span>}
           </button>
           <button className={`bm-subtab ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>Upload BOM / Data</button>
+          <button className={`bm-subtab ${activeTab === 'explorer' ? 'active' : ''}`} onClick={() => setActiveTab('explorer')}>BOM Explorer</button>
         </div>
       </div>
 
@@ -279,6 +281,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
       )}
 
       {activeTab === 'upload' && <UploadPanel bom={bom} setBom={setBom} />}
+      {activeTab === 'explorer' && <BOMExplorer />}
 
       {activeTab === 'manual' && <>
       {/* ── Summary cards ─────────────────────────────────────────── */}
