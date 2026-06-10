@@ -281,7 +281,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
       )}
 
       {activeTab === 'upload' && <UploadPanel bom={bom} setBom={setBom} />}
-      {activeTab === 'explorer' && <BOMExplorer />}
+      {activeTab === 'explorer' && <BOMExplorer setBom={setBom} />}
 
       {activeTab === 'manual' && <>
       {/* ── Summary cards ─────────────────────────────────────────── */}

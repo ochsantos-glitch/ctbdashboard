@@ -25,7 +25,7 @@ function partType(pn) {
 
 const PART_TYPES = ['All', 'SKU', 'Assembly', 'Sub-Assembly', 'Purchased', 'PCB', 'Component']
 
-export default function BOMExplorer() {
+export default function BOMExplorer({ setBom }) {
   const [search,   setSearch]   = useState('')
   const [level,    setLevel]    = useState('all')
   const [type,     setType]     = useState('All')
@@ -101,6 +101,29 @@ export default function BOMExplorer() {
     URL.revokeObjectURL(url)
   }
 
+  const [importMsg, setImportMsg] = useState(null)
+
+  function importToBOM() {
+    if (!setBom) return
+    const parts = bomPartsOnly.map(r => ({
+      id:          r.id || crypto.randomUUID(),
+      kpn:         r.pn || '',
+      description: r.description || '',
+      rev:         r.rev || '',
+      supplier:    r.mfr || '',
+      mpn:         r.mpn || '',
+      qtyPerUnit:  Number(r.usage) || 1,
+      category:    r.level === 0 ? 'SKU' : r.level === 1 ? 'Assembly' : r.level === 2 ? 'Sub-Assembly' : 'Component',
+    }))
+    const replace = window.confirm(`Import all ${parts.length} BOM Explorer parts to BOM Materials?\nOK = Replace existing  |  Cancel = Add to existing`)
+    setBom(replace ? parts : prev => {
+      const existing = new Set(prev.map(p => p.kpn).filter(Boolean))
+      return [...prev, ...parts.filter(p => !existing.has(p.kpn))]
+    })
+    setImportMsg(`✓ ${replace ? 'Replaced with' : 'Added'} ${parts.length} parts to BOM Materials`)
+    setTimeout(() => setImportMsg(null), 5000)
+  }
+
   return (
     <div className="bom-explorer">
       <h1>
@@ -149,7 +172,9 @@ export default function BOMExplorer() {
         </select>
         <button onClick={exportCSV}  className="btn-export">Export CSV</button>
         <button onClick={exportJSON} className="btn-export btn-export-json">Export JSON</button>
+        {setBom && <button onClick={importToBOM} className="btn-export" style={{ background:'#059669' }}>⬆ Import All to BOM Materials</button>}
       </div>
+      {importMsg && <div className="bm-import-msg bm-import-ok" style={{ margin:'8px 0' }}><strong>{importMsg}</strong></div>}
 
       {/* Table — matches the sample spreadsheet format */}
       <div className="bom-table-wrap">
