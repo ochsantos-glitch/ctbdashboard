@@ -207,6 +207,8 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                       <th>PN</th>
                       <th>Description</th>
                       <th>Revision</th>
+                      <th>MFR</th>
+                      <th>MPN</th>
                       <th>Project</th>
                       <th>Category</th>
                       <th style={{ textAlign:'right' }}>Incoming</th>
@@ -216,7 +218,7 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                   </thead>
                   <tbody>
                     {filteredBOM.length === 0 ? (
-                      <tr><td colSpan={8} className="inv-empty">No parts match filters.</td></tr>
+                      <tr><td colSpan={10} className="inv-empty">No parts match filters.</td></tr>
                     ) : filteredBOM.map(part => {
                       const relBuilds = filteredBuilds.filter(b => boardOf(b.Config) === part.appliesTo || boardOf(b.Config) === null)
                       const qtyNeeded = relBuilds.reduce((s, b) => s + (part.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
@@ -231,6 +233,8 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                           <td style={{ fontSize:12, fontFamily:'monospace' }}>
                             {part.rev || <span style={{ color:'#94a3b8' }}>—</span>}
                           </td>
+                          <td style={{ fontSize:12, color:'#475569' }}>{part.supplier || <span style={{ color:'#94a3b8' }}>—</span>}</td>
+                          <td style={{ fontSize:11, fontFamily:'monospace' }}>{part.mpn || <span style={{ color:'#94a3b8' }}>—</span>}</td>
                           <td>
                             {projName
                               ? <span style={{ padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dcfce7', color:'#15803d' }}>{projName}</span>
@@ -249,7 +253,7 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                   {filteredBOM.length > 0 && (
                     <tfoot>
                       <tr className="bom-total-row">
-                        <td colSpan={5}><strong>Total Qty Needed</strong></td>
+                        <td colSpan={7}><strong>Total Qty Needed</strong></td>
                         <td style={{ textAlign:'right' }}>
                           <strong>{filteredBOM.reduce((s, p) => {
                             const rb = filteredBuilds.filter(b => boardOf(b.Config) === p.appliesTo)
