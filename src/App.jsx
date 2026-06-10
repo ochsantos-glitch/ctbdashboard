@@ -137,7 +137,6 @@ function App() {
     { id: 'dashboard',   label: 'Dashboard' },
     { id: 'budget',      label: 'Budget' },
     { id: 'bomExplorer', label: 'BOM Explorer' },
-    { id: 'bom',         label: 'Cost BOM' },
     { id: 'suppliers',   label: 'Suppliers' },
     { id: 'upload',      label: 'Upload' },
     { id: 'buildMatrix', label: 'Build Matrix' },
