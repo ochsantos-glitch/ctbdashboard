@@ -237,9 +237,9 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
 
               {/* Table */}
               <div className="bom-table-wrap" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 280px)' }}>
-                <table className="build-table inv-table" style={{ tableLayout: 'fixed', width: bomColWidths.reduce((s,w)=>s+w,0), borderCollapse: 'collapse' }}>
+                <table className="build-table inv-table" style={{ tableLayout: 'fixed', width: bomColWidths.reduce((s,w)=>s+w,0), borderCollapse: 'separate', borderSpacing: 0 }}>
                   <colgroup>{bomColWidths.map((w,i) => <col key={i} style={{ width: w }} />)}</colgroup>
-                  <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                  <thead>
                     <tr>
                       {[
                         { label:'PN',            ci:0  },
@@ -255,7 +255,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                         { label:'PO #',          ci:10 },
                         { label:'Received Date', ci:11 },
                       ].map(({ label, ci, right }) => (
-                        <th key={ci} style={{ padding: 0, overflow: 'hidden', textAlign: right ? 'right' : 'left', position: 'relative' }}>
+                        <th key={ci} style={{ padding: 0, overflow: 'hidden', textAlign: right ? 'right' : 'left', position: 'sticky', top: 0, zIndex: 10, background: '#1a1a2e' }}>
                           <div style={{ display:'flex', alignItems:'stretch', height:'100%' }}>
                             <span style={{ flex:1, padding:'10px 12px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign: right ? 'right' : 'left' }}>
                               {label}
