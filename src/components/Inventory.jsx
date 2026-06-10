@@ -68,6 +68,8 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
   const [filterStage, setFilterStage] = useState('All')
   const [filterProject, setFilterProject] = useState('All')
   const [filterBoard, setFilterBoard] = useState('All')
+  const [bomPage,    setBomPage]    = useState(1)
+  const BOM_PAGE_SIZE = 50
 
   useEffect(() => {
     if (!itemsProp) localStorage.setItem('inventory-items', JSON.stringify(items))
@@ -158,6 +160,8 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
     (!bomSearch || (p.kpn||p.lab126pn||'').toLowerCase().includes(bomSearch.toLowerCase()) ||
       (p.description||'').toLowerCase().includes(bomSearch.toLowerCase()))
   )
+  const totalBomPages = Math.ceil(filteredBOM.length / BOM_PAGE_SIZE)
+  const pagedBOM      = filteredBOM.slice((bomPage - 1) * BOM_PAGE_SIZE, bomPage * BOM_PAGE_SIZE)
 
   return (
     <div className="dashboard-page">
@@ -189,10 +193,10 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                 <div className="proj-search-wrap">
                   <span className="proj-search-icon">⌕</span>
                   <input className="proj-search-input" placeholder="Search PN or description…"
-                    value={bomSearch} onChange={e => setBomSearch(e.target.value)} style={{ width:200 }} />
+                    value={bomSearch} onChange={e => { setBomSearch(e.target.value); setBomPage(1) }} style={{ width:200 }} />
                   {bomSearch && <button className="proj-search-clear" onClick={() => setBomSearch('')}>×</button>}
                 </div>
-                <select className="filter-select" value={filterBoard} onChange={e => setFilterBoard(e.target.value)}>
+                <select className="filter-select" value={filterBoard} onChange={e => { setFilterBoard(e.target.value); setBomPage(1) }}>
                   {boards.map(b => <option key={b} value={b}>{b === 'All' ? 'All Boards' : b}</option>)}
                 </select>
                 <select className="filter-select" value={filterStage} onChange={e => setFilterStage(e.target.value)}>
@@ -225,7 +229,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                   <tbody>
                     {filteredBOM.length === 0 ? (
                       <tr><td colSpan={12} className="inv-empty">No parts match filters.</td></tr>
-                    ) : filteredBOM.map(part => {
+                    ) : pagedBOM.map(part => {
                       const relBuilds = filteredBuilds.filter(b => boardOf(b.Config) === part.appliesTo || boardOf(b.Config) === null)
                       const qtyNeeded = relBuilds.reduce((s, b) => s + (part.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
                       const incoming  = part.deliveryQty != null ? Number(part.deliveryQty) : (Number(part.materialQtyOrdered) || null)
@@ -275,6 +279,15 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                   )}
                 </table>
               </div>
+              {totalBomPages > 1 && (
+                <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 0', justifyContent:'center' }}>
+                  <button className="btn-cancel" style={{ padding:'4px 12px' }} onClick={() => setBomPage(1)} disabled={bomPage === 1}>«</button>
+                  <button className="btn-cancel" style={{ padding:'4px 12px' }} onClick={() => setBomPage(p => Math.max(1, p - 1))} disabled={bomPage === 1}>‹</button>
+                  <span style={{ fontSize:13, color:'#475569' }}>Page {bomPage} of {totalBomPages} &nbsp;·&nbsp; {filteredBOM.length} parts</span>
+                  <button className="btn-cancel" style={{ padding:'4px 12px' }} onClick={() => setBomPage(p => Math.min(totalBomPages, p + 1))} disabled={bomPage === totalBomPages}>›</button>
+                  <button className="btn-cancel" style={{ padding:'4px 12px' }} onClick={() => setBomPage(totalBomPages)} disabled={bomPage === totalBomPages}>»</button>
+                </div>
+              )}
             </>
           )}
         </div>
