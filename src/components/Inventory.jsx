@@ -236,7 +236,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
               </div>
 
               {/* Table */}
-              <div className="bom-table-wrap" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 280px)' }}>
+              <div className="bom-table-wrap" style={{ overflowY: 'auto', height: 'calc(100vh - 235px)' }}>
                 <table className="build-table inv-table" style={{ tableLayout: 'fixed', width: bomColWidths.reduce((s,w)=>s+w,0), borderCollapse: 'separate', borderSpacing: 0 }}>
                   <colgroup>{bomColWidths.map((w,i) => <col key={i} style={{ width: w }} />)}</colgroup>
                   <thead>
