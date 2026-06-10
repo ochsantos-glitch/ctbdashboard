@@ -206,12 +206,12 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                     <tr>
                       <th>PN</th>
                       <th>Description</th>
+                      <th>Revision</th>
                       <th>Project</th>
                       <th>Category</th>
                       <th style={{ textAlign:'right' }}>Incoming</th>
                       <th style={{ textAlign:'right' }}>Qty Needed</th>
                       <th style={{ textAlign:'right' }}>Balance</th>
-                      <th>Revision</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -229,6 +229,11 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                           <td style={{ fontFamily:'monospace', fontSize:11 }}>{part.kpn || part.lab126pn || part.id || '—'}</td>
                           <td style={{ fontSize:12 }}>{part.description || '—'}</td>
                           <td>
+                            {stageSet.length > 0
+                              ? stageSet.map(s => <span key={s} style={{ marginRight:4, padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dbeafe', color:'#1d4ed8' }}>{s}</span>)
+                              : <span style={{ color:'#94a3b8' }}>—</span>}
+                          </td>
+                          <td>
                             {projName
                               ? <span style={{ padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dcfce7', color:'#15803d' }}>{projName}</span>
                               : <span style={{ color:'#94a3b8' }}>—</span>}
@@ -238,11 +243,6 @@ export default function Inventory({ bom = [], builds = [], projects = [], active
                           <td style={{ textAlign:'right', fontWeight:700 }}>{qtyNeeded > 0 ? qtyNeeded.toLocaleString() : '—'}</td>
                           <td style={{ textAlign:'right', fontWeight:700, color: balance == null ? '#94a3b8' : balance < 0 ? '#ef4444' : '#16a34a' }}>
                             {balance == null ? '—' : `${balance >= 0 ? '+' : ''}${balance.toLocaleString()}`}
-                          </td>
-                          <td>
-                            {stageSet.length > 0
-                              ? stageSet.map(s => <span key={s} style={{ marginRight:4, padding:'1px 7px', borderRadius:10, fontSize:11, background:'#dbeafe', color:'#1d4ed8' }}>{s}</span>)
-                              : <span style={{ color:'#94a3b8' }}>—</span>}
                           </td>
                         </tr>
                       )
