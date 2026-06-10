@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import UploadPanel from './UploadPanel'
 import BOMExplorer from './BOMExplorer'
 
@@ -70,6 +70,34 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
   const [filterBoard, setFilterBoard] = useState('All')
   const [bomPage,    setBomPage]    = useState(1)
   const BOM_PAGE_SIZE = 50
+
+  // ── Resizable columns (BOM Materials tab) ────────────────────────────────
+  const BOM_COL_DEFAULTS = [110, 200, 70, 130, 140, 90, 90, 80, 100, 90, 90, 110]
+  const [bomColWidths, setBomColWidths] = useState(() => {
+    try { const s = localStorage.getItem('inv-bom-col-widths'); return s ? JSON.parse(s) : BOM_COL_DEFAULTS } catch { return BOM_COL_DEFAULTS }
+  })
+  const bomResizeDrag = useRef(null)
+
+  useEffect(() => {
+    const onMove = e => {
+      if (!bomResizeDrag.current) return
+      const { ci, startX, startW } = bomResizeDrag.current
+      setBomColWidths(prev => prev.map((w, i) => i === ci ? Math.max(40, startW + e.clientX - startX) : w))
+    }
+    const onUp = () => { bomResizeDrag.current = null; document.body.style.cursor = ''; document.body.style.userSelect = '' }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, [])
+
+  useEffect(() => { localStorage.setItem('inv-bom-col-widths', JSON.stringify(bomColWidths)) }, [bomColWidths])
+
+  function startColResize(e, ci) {
+    e.preventDefault()
+    bomResizeDrag.current = { ci, startX: e.clientX, startW: bomColWidths[ci] }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
 
   useEffect(() => {
     if (!itemsProp) localStorage.setItem('inventory-items', JSON.stringify(items))
@@ -208,22 +236,39 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
               </div>
 
               {/* Table */}
-              <div className="bom-table-wrap">
-                <table className="build-table inv-table">
-                  <thead>
+              <div className="bom-table-wrap" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 280px)' }}>
+                <table className="build-table inv-table" style={{ tableLayout: 'fixed', width: bomColWidths.reduce((s,w)=>s+w,0), borderCollapse: 'collapse' }}>
+                  <colgroup>{bomColWidths.map((w,i) => <col key={i} style={{ width: w }} />)}</colgroup>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
-                      <th>PN</th>
-                      <th>Description</th>
-                      <th>Revision</th>
-                      <th>MFR</th>
-                      <th>MPN</th>
-                      <th style={{ textAlign:'right' }}>Incoming</th>
-                      <th style={{ textAlign:'right' }}>Qty Needed</th>
-                      <th style={{ textAlign:'right' }}>Balance</th>
-                      <th>Project</th>
-                      <th>Category</th>
-                      <th>PO #</th>
-                      <th>Received Date</th>
+                      {[
+                        { label:'PN',            ci:0  },
+                        { label:'Description',   ci:1  },
+                        { label:'Revision',      ci:2  },
+                        { label:'MFR',           ci:3  },
+                        { label:'MPN',           ci:4  },
+                        { label:'Incoming',      ci:5,  right:true },
+                        { label:'Qty Needed',    ci:6,  right:true },
+                        { label:'Balance',       ci:7,  right:true },
+                        { label:'Project',       ci:8  },
+                        { label:'Category',      ci:9  },
+                        { label:'PO #',          ci:10 },
+                        { label:'Received Date', ci:11 },
+                      ].map(({ label, ci, right }) => (
+                        <th key={ci} style={{ padding: 0, overflow: 'hidden', textAlign: right ? 'right' : 'left', position: 'relative' }}>
+                          <div style={{ display:'flex', alignItems:'stretch', height:'100%' }}>
+                            <span style={{ flex:1, padding:'10px 12px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign: right ? 'right' : 'left' }}>
+                              {label}
+                            </span>
+                            <div
+                              onMouseDown={e => startColResize(e, ci)}
+                              style={{ width:5, flexShrink:0, cursor:'col-resize', background:'rgba(255,255,255,0.2)', alignSelf:'stretch' }}
+                              onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.55)'}
+                              onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.2)'}
+                            />
+                          </div>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
