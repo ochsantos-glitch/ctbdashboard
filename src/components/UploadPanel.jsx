@@ -81,25 +81,53 @@ export default function UploadPanel({ bom = [], setBom }) {
   function importToBOM() {
     if (!uploadedData?.length || !setBom) return
     const numFields = ['qtyPerUnit', 'unitCost', 'materialQtyOrdered']
-    const parts = uploadedData.map(row => {
+    const IMPORTANT = ['description', 'kpn', 'supplier', 'mpn', 'rev', 'qtyPerUnit']
+
+    // Check which columns were recognised
+    const fileColumns = Object.keys(uploadedData[0])
+    const recognised  = fileColumns.filter(k => BOM_KEY_MAP[k.trim().toLowerCase()])
+    const unrecognised = fileColumns.filter(k => !BOM_KEY_MAP[k.trim().toLowerCase()])
+    const mappedFields = new Set(recognised.map(k => BOM_KEY_MAP[k.trim().toLowerCase()]))
+    const missingImportant = IMPORTANT.filter(f => !mappedFields.has(f))
+
+    const parts = uploadedData.map((row, i) => {
       const out = {}
       Object.entries(row).forEach(([k, v]) => {
         const mapped = BOM_KEY_MAP[k.trim().toLowerCase()]
         if (mapped) out[mapped] = numFields.includes(mapped) ? (Number(v) || 0) : String(v).trim()
       })
       if (!out.id) out.id = crypto.randomUUID()
+      out._rowIndex = i + 2 // 1-based + header row
       return out
-    }).filter(p => p.description || p.kpn || p.lab126pn)
+    })
 
-    if (!parts.length) { setImportMsg({ ok: false, text: 'No matching columns found. Make sure your file has columns like: description, kpn, mfr, mpn, rev, qty per unit, etc.' }); return }
+    const valid   = parts.filter(p => p.description || p.kpn || p.lab126pn)
+    const skipped = parts.filter(p => !p.description && !p.kpn && !p.lab126pn)
+
+    // Build detailed error/warning info
+    const warnings = []
+    if (!recognised.length) {
+      setImportMsg({ ok: false, text: 'No recognised columns found.', detail: `Your columns: ${fileColumns.join(', ')}. Expected columns like: description, kpn, mfr, mpn, rev, qty per unit, unit cost, etc.` })
+      return
+    }
+    if (skipped.length)        warnings.push(`${skipped.length} row(s) skipped — missing both description and PN`)
+    if (missingImportant.length) warnings.push(`Missing columns: ${missingImportant.join(', ')}`)
+    if (unrecognised.length)   warnings.push(`Unrecognised columns ignored: ${unrecognised.join(', ')}`)
+
+    if (!valid.length) {
+      setImportMsg({ ok: false, text: 'No valid parts found.', detail: warnings.join(' · ') })
+      return
+    }
 
     const replace = bom.length > 0 && window.confirm(`Replace all ${bom.length} existing BOM parts?\nOK = Replace  |  Cancel = Add to existing`)
-    setBom(replace ? parts : prev => {
+    setBom(replace ? valid : prev => {
       const existing = new Set(prev.map(p => p.id))
-      return [...prev, ...parts.filter(p => !existing.has(p.id))]
+      return [...prev, ...valid.filter(p => !existing.has(p.id))]
     })
-    setImportMsg({ ok: true, text: `${replace ? 'Replaced with' : 'Added'} ${parts.length} parts to BOM Materials` })
-    setTimeout(() => setImportMsg(null), 6000)
+
+    const summary = `${replace ? 'Replaced with' : 'Added'} ${valid.length} parts to BOM Materials`
+    setImportMsg({ ok: true, text: summary, detail: warnings.length ? warnings.join(' · ') : null })
+    setTimeout(() => setImportMsg(null), 8000)
   }
 
   return (
@@ -160,6 +188,7 @@ export default function UploadPanel({ bom = [], setBom }) {
           {importMsg && (
             <div className={`bm-import-msg ${importMsg.ok ? 'bm-import-ok' : 'bm-import-warn'}`} style={{ marginBottom:12 }}>
               <strong>{importMsg.text}</strong>
+              {importMsg.detail && <span className="bm-import-detail"> — {importMsg.detail}</span>}
             </div>
           )}
 
