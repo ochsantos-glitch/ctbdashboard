@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, Component } from 'react'
 import './App.css'
 import { bomData as initialBom } from './data/bomData'
 import { bomPartsOnly } from './data/bomSkuData'
@@ -410,7 +410,7 @@ function PasswordGate({ onUnlock }) {
   function handleSubmit(e) {
     e.preventDefault()
     if (input === DASHBOARD_PASSWORD) {
-      sessionStorage.setItem('sc-auth', '1')
+      try { localStorage.setItem('sc-auth', '1') } catch {}
       onUnlock()
     } else {
       setError(true)
@@ -440,8 +440,40 @@ function PasswordGate({ onUnlock }) {
   )
 }
 
+class AppErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 40, fontFamily: 'sans-serif', maxWidth: 600, margin: '0 auto' }}>
+          <h2 style={{ color: '#dc2626' }}>Something went wrong</h2>
+          <p style={{ color: '#374151' }}>Your data is safe. Try refreshing the page.</p>
+          <p style={{ color: '#6b7280', fontSize: 13 }}>{String(this.state.error)}</p>
+          <button
+            style={{ marginTop: 16, padding: '8px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14 }}
+            onClick={() => window.location.reload()}
+          >Reload</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function AppWithAuth() {
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem('sc-auth') === '1')
+  const [unlocked, setUnlocked] = useState(() => {
+    try { return localStorage.getItem('sc-auth') === '1' } catch { return false }
+  })
   if (!unlocked) return <PasswordGate onUnlock={() => setUnlocked(true)} />
-  return <App />
+  return (
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
+  )
 }
