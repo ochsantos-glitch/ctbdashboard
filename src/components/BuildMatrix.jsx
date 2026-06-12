@@ -1218,24 +1218,26 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                     </td>
                   )
                 })}
-                <td style={{ position:'sticky', top:0, fontSize:10, fontWeight:700, padding:0,
+                <td style={{ top:0, fontSize:10, fontWeight:700, padding:0,
                   background:'#eff6ff', color:'#1d4ed8', border:'1px solid #e2e8f0',
-                  borderLeft:'2px solid #94a3b8', zIndex:3, verticalAlign:'middle', overflow:'hidden' }}>
-                  <div style={{ display:'flex', alignItems:'stretch', height:'100%' }}>
+                  borderLeft:'2px solid #94a3b8', verticalAlign:'middle', overflow:'hidden',
+                  width:totalW, minWidth:totalW }}>
+                  <div style={{ display:'flex', alignItems:'center' }}>
                     <span style={{ flex:1, padding:'4px 6px', textAlign:'center' }}>Total Shipment Qty</span>
                     <div onMouseDown={e => startTotalResize(e, 'total')}
-                      style={{ width:5, flexShrink:0, cursor:'col-resize', background:'rgba(29,78,216,0.2)', alignSelf:'stretch' }}
+                      style={{ width:6, flexShrink:0, cursor:'col-resize', background:'rgba(29,78,216,0.2)', alignSelf:'stretch', minHeight:28 }}
                       onMouseEnter={e => e.currentTarget.style.background='rgba(29,78,216,0.5)'}
                       onMouseLeave={e => e.currentTarget.style.background='rgba(29,78,216,0.2)'} />
                   </div>
                 </td>
-                <td style={{ position:'sticky', top:0, fontSize:10, fontWeight:700, padding:0,
+                <td style={{ top:0, fontSize:10, fontWeight:700, padding:0,
                   background:'#f0fdf4', color:'#15803d', border:'1px solid #e2e8f0',
-                  zIndex:3, verticalAlign:'middle', overflow:'hidden' }}>
-                  <div style={{ display:'flex', alignItems:'stretch', height:'100%' }}>
+                  verticalAlign:'middle', overflow:'hidden',
+                  width:balW, minWidth:balW }}>
+                  <div style={{ display:'flex', alignItems:'center' }}>
                     <span style={{ flex:1, padding:'4px 6px', textAlign:'center' }}>Balance Qty</span>
                     <div onMouseDown={e => startTotalResize(e, 'bal')}
-                      style={{ width:5, flexShrink:0, cursor:'col-resize', background:'rgba(21,128,61,0.2)', alignSelf:'stretch' }}
+                      style={{ width:6, flexShrink:0, cursor:'col-resize', background:'rgba(21,128,61,0.2)', alignSelf:'stretch', minHeight:28 }}
                       onMouseEnter={e => e.currentTarget.style.background='rgba(21,128,61,0.5)'}
                       onMouseLeave={e => e.currentTarget.style.background='rgba(21,128,61,0.2)'} />
                   </div>
