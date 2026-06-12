@@ -68,6 +68,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
   const [filterStage, setFilterStage] = useState('All')
   const [filterProject, setFilterProject] = useState('All')
   const [filterBoard, setFilterBoard] = useState('All')
+  const [filterNoStock, setFilterNoStock] = useState(false)
   const [bomPage,    setBomPage]    = useState(1)
   const BOM_PAGE_SIZE = 50
 
@@ -183,11 +184,18 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
     (filterStage   === 'All' || (b.Stage ?? '') === filterStage)
   )
 
-  const filteredBOM = bom.filter(p =>
-    (filterBoard === 'All' || p.appliesTo === filterBoard) &&
-    (!bomSearch || (p.kpn||p.lab126pn||'').toLowerCase().includes(bomSearch.toLowerCase()) ||
-      (p.description||'').toLowerCase().includes(bomSearch.toLowerCase()))
-  )
+  const filteredBOM = bom.filter(p => {
+    if (filterBoard !== 'All' && p.appliesTo !== filterBoard) return false
+    if (bomSearch && !(p.kpn||p.lab126pn||'').toLowerCase().includes(bomSearch.toLowerCase()) &&
+      !(p.description||'').toLowerCase().includes(bomSearch.toLowerCase())) return false
+    if (filterNoStock) {
+      const inc = p.deliveryQty != null ? Number(p.deliveryQty) : (Number(p.materialQtyOrdered) || null)
+      const need = filteredBuilds.filter(b => boardOf(b.Config) === p.appliesTo || boardOf(b.Config) === null)
+        .reduce((s, b) => s + (p.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
+      if (!((inc == null || inc === 0) && need > 0)) return false
+    }
+    return true
+  })
   const totalBomPages = Math.ceil(filteredBOM.length / BOM_PAGE_SIZE)
   const pagedBOM      = filteredBOM.slice((bomPage - 1) * BOM_PAGE_SIZE, bomPage * BOM_PAGE_SIZE)
 
@@ -241,11 +249,13 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                       </div>
                     )}
                     {noStock > 0 && (
-                      <div style={{ display:'flex', alignItems:'center', gap:7, background:'#fef2f2', border:'1px solid #fecaca', borderRadius:8, padding:'7px 14px' }}>
+                      <div
+                        onClick={() => { setFilterNoStock(f => !f); setBomPage(1) }}
+                        style={{ display:'flex', alignItems:'center', gap:7, background: filterNoStock ? '#dc2626' : '#fef2f2', border:'1px solid #fecaca', borderRadius:8, padding:'7px 14px', cursor:'pointer', userSelect:'none' }}>
                         <span style={{ fontSize:18, lineHeight:1 }}>🚨</span>
                         <div>
-                          <div style={{ fontWeight:700, fontSize:13, color:'#dc2626' }}>{noStock.toLocaleString()} parts</div>
-                          <div style={{ fontSize:11, color:'#991b1b' }}>Have demand but no stock</div>
+                          <div style={{ fontWeight:700, fontSize:13, color: filterNoStock ? '#fff' : '#dc2626' }}>{noStock.toLocaleString()} parts</div>
+                          <div style={{ fontSize:11, color: filterNoStock ? '#fecaca' : '#991b1b' }}>{filterNoStock ? 'Showing no-stock only — click to clear' : 'Have demand but no stock · click to filter'}</div>
                         </div>
                       </div>
                     )}
