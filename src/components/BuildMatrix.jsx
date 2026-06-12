@@ -1360,7 +1360,12 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                       <button className="bm-hdr-btn bm-hdr-del"
                         style={{ fontSize:13, padding:'2px 5px' }}
                         title="Remove part"
-                        onClick={() => setBom(prev => prev.filter(p => p.id !== part.id))}>
+                        onClick={() => {
+                          const pn = part.kpn || part.lab126pn || part.id
+                          if (window.confirm(`Remove "${pn}" from BOM?\n\nThis cannot be undone.`)) {
+                            setBom(prev => prev.filter(p => p.id !== part.id))
+                          }
+                        }}>
                         ✕
                       </button>
                     </td>
