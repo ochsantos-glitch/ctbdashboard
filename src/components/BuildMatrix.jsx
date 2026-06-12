@@ -1225,7 +1225,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                   borderLeft:'2px solid #94a3b8', verticalAlign:'middle', overflow:'hidden',
                   width:totalW, minWidth:totalW, maxWidth:totalW }}>
                   <div style={{ display:'flex', alignItems:'stretch', height:'100%', minHeight:28 }}>
-                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'flex-start', whiteSpace:'nowrap', overflow:'hidden' }}>
+                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'flex-start', flexWrap:'wrap', overflow:'hidden' }}>
                       Total Shipment Qty
                     </span>
                     <div
@@ -1240,7 +1240,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                   verticalAlign:'middle', overflow:'hidden',
                   width:balW, minWidth:balW, maxWidth:balW }}>
                   <div style={{ display:'flex', alignItems:'stretch', height:'100%', minHeight:28 }}>
-                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'flex-start', whiteSpace:'nowrap', overflow:'hidden' }}>
+                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'flex-start', flexWrap:'wrap', overflow:'hidden' }}>
                       Balance Qty
                     </span>
                     <div
