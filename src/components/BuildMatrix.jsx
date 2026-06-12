@@ -887,12 +887,12 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
   useEffect(() => {
     const onMove = e => {
       if (!resizeDrag.current) return
-      const { ci, cfgName, startX, startW } = resizeDrag.current
-      if (cfgName) {
-        setCfgColWidths(prev => ({ ...prev, [cfgName]: Math.max(40, startW + e.clientX - startX) }))
-      } else {
-        setColWidths(prev => prev.map((w, i) => i === ci ? Math.max(40, startW + e.clientX - startX) : w))
-      }
+      const { ci, cfgName, type, startX, startW } = resizeDrag.current
+      const newW = Math.max(40, startW + e.clientX - startX)
+      if (type === 'total')    setTotalW(newW)
+      else if (type === 'bal') setBalW(newW)
+      else if (cfgName)        setCfgColWidths(prev => ({ ...prev, [cfgName]: newW }))
+      else                     setColWidths(prev => prev.map((w, i) => i === ci ? newW : w))
     }
     const onUp = () => {
       resizeDrag.current = null
@@ -953,7 +953,10 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
     setEditCell(null)
   }
 
-  const DEL_W  = 100
+  const [totalW, setTotalW] = useState(() => { try { return Number(localStorage.getItem('bm-total-w')) || 100 } catch { return 100 } })
+  const [balW,   setBalW]   = useState(() => { try { return Number(localStorage.getItem('bm-bal-w'))   || 100 } catch { return 100 } })
+  useEffect(() => { localStorage.setItem('bm-total-w', totalW) }, [totalW])
+  useEffect(() => { localStorage.setItem('bm-bal-w',   balW)   }, [balW])
   function hdrStyle(ci, extra = {}) {
     return { width: colWidths[ci], maxWidth: colWidths[ci], overflow:'hidden',
       position: 'sticky', left: SL[ci], top: 0, zIndex: 4,
@@ -1004,6 +1007,12 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
   function startCfgResize(e, name) {
     e.preventDefault()
     resizeDrag.current = { ci: null, cfgName: name, startX: e.clientX, startW: getCfgW(name) }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+  function startTotalResize(e, type) {
+    e.preventDefault()
+    resizeDrag.current = { type, startX: e.clientX, startW: type === 'total' ? totalW : balW }
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
   }
@@ -1061,12 +1070,12 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
       )}
 
       <div className="bm-unified-scroll">
-        <table style={{ tableLayout:'fixed', width: colWidths.reduce((s,w)=>s+w,0) + filteredCfgs.reduce((s,c)=>s+getCfgW(c.Config),0) + DEL_W*2 + 36, borderCollapse:'collapse', fontSize:11, background:'#fff' }}>
+        <table style={{ tableLayout:'fixed', width: colWidths.reduce((s,w)=>s+w,0) + filteredCfgs.reduce((s,c)=>s+getCfgW(c.Config),0) + totalW + balW + 36, borderCollapse:'collapse', fontSize:11, background:'#fff' }}>
           <colgroup>
             {colWidths.map((w,i) => <col key={i} style={{ width:w }} />)}
             {filteredCfgs.map(c => <col key={c.Config} style={{ width: getCfgW(c.Config) }} />)}
-            <col style={{ width: DEL_W }} />
-            <col style={{ width: DEL_W }} />
+            <col style={{ width: totalW }} />
+            <col style={{ width: balW }} />
             <col style={{ width: 36 }} />
           </colgroup>
           <thead />
@@ -1209,15 +1218,27 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                     </td>
                   )
                 })}
-                <td style={{ position:'sticky', top:0, fontSize:10, padding:'4px 6px', fontWeight:700,
+                <td style={{ position:'sticky', top:0, fontSize:10, fontWeight:700, padding:0,
                   background:'#eff6ff', color:'#1d4ed8', border:'1px solid #e2e8f0',
-                  borderLeft:'2px solid #94a3b8', zIndex:3, verticalAlign:'middle', textAlign:'center' }}>
-                  Total Shipment Qty
+                  borderLeft:'2px solid #94a3b8', zIndex:3, verticalAlign:'middle', overflow:'hidden' }}>
+                  <div style={{ display:'flex', alignItems:'stretch', height:'100%' }}>
+                    <span style={{ flex:1, padding:'4px 6px', textAlign:'center' }}>Total Shipment Qty</span>
+                    <div onMouseDown={e => startTotalResize(e, 'total')}
+                      style={{ width:5, flexShrink:0, cursor:'col-resize', background:'rgba(29,78,216,0.2)', alignSelf:'stretch' }}
+                      onMouseEnter={e => e.currentTarget.style.background='rgba(29,78,216,0.5)'}
+                      onMouseLeave={e => e.currentTarget.style.background='rgba(29,78,216,0.2)'} />
+                  </div>
                 </td>
-                <td style={{ position:'sticky', top:0, fontSize:10, padding:'4px 6px', fontWeight:700,
+                <td style={{ position:'sticky', top:0, fontSize:10, fontWeight:700, padding:0,
                   background:'#f0fdf4', color:'#15803d', border:'1px solid #e2e8f0',
-                  zIndex:3, verticalAlign:'middle', textAlign:'center' }}>
-                  Balance Qty
+                  zIndex:3, verticalAlign:'middle', overflow:'hidden' }}>
+                  <div style={{ display:'flex', alignItems:'stretch', height:'100%' }}>
+                    <span style={{ flex:1, padding:'4px 6px', textAlign:'center' }}>Balance Qty</span>
+                    <div onMouseDown={e => startTotalResize(e, 'bal')}
+                      style={{ width:5, flexShrink:0, cursor:'col-resize', background:'rgba(21,128,61,0.2)', alignSelf:'stretch' }}
+                      onMouseEnter={e => e.currentTarget.style.background='rgba(21,128,61,0.5)'}
+                      onMouseLeave={e => e.currentTarget.style.background='rgba(21,128,61,0.2)'} />
+                  </div>
                 </td>
                 <td style={{ position:'sticky', top:0, width:36, minWidth:36,
                   background:'#f8fafc', border:'1px solid #e2e8f0', zIndex:3 }} />
@@ -1239,8 +1260,8 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                 <td style={{ position:'sticky', left:SL[5], top:32, zIndex:5, background:'#f1f5f9', borderBottom:'2px solid #cbd5e1' }} />
                 <td style={{ position:'sticky', left:SL[6], top:32, zIndex:5, background:'#f1f5f9', borderBottom:'2px solid #cbd5e1', ...FRZ }} />
                 {filteredCfgs.map(c => <td key={c.Config} style={{...cw(c.Config), background:'#f1f5f9', borderBottom:'2px solid #cbd5e1', padding:0}} />)}
-                <td style={{ width:DEL_W, minWidth:DEL_W, background:'#eff6ff', borderBottom:'2px solid #cbd5e1', borderLeft:'2px solid #94a3b8' }} />
-                <td style={{ width:DEL_W, minWidth:DEL_W, background:'#f0fdf4', borderBottom:'2px solid #cbd5e1' }} />
+                <td style={{ width:totalW, minWidth:totalW, background:'#eff6ff', borderBottom:'2px solid #cbd5e1', borderLeft:'2px solid #94a3b8' }} />
+                <td style={{ width:balW, minWidth:balW, background:'#f0fdf4', borderBottom:'2px solid #cbd5e1' }} />
                 <td style={{ width:36, minWidth:36, background:'#f8fafc', borderBottom:'2px solid #cbd5e1' }} />
               </tr>
               {filteredBOM.length === 0 ? (
@@ -1331,7 +1352,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                     })}
                     {/* Total shipment qty — editable */}
                     <td className="bm-flat-cell bm-editable-cell bm-cell-num"
-                      style={{ width:DEL_W, minWidth:DEL_W, fontSize:12, background:'#eff6ff', borderLeft:'2px solid #94a3b8' }}
+                      style={{ width:totalW, minWidth:totalW, fontSize:12, background:'#eff6ff', borderLeft:'2px solid #94a3b8' }}
                       title="Click to set total shipment qty">
                       {isEdPart('deliveryQty') ? (
                         <input className="bm-inline-input" type="number" value={partDraft} autoFocus style={{width:80,textAlign:'right'}}
@@ -1348,7 +1369,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                     </td>
                     {/* Balance qty — auto-calculated */}
                     <td className="bm-flat-cell bm-cell-num"
-                      style={{ width:DEL_W, minWidth:DEL_W, fontSize:12, background:'#f0fdf4' }}>
+                      style={{ width:balW, minWidth:balW, fontSize:12, background:'#f0fdf4' }}>
                       {remaining != null
                         ? <div style={{fontWeight:700, padding:'2px 6px', color:remaining>=0?'#16a34a':'#dc2626'}}>
                             {remaining>=0?'+':''}{remaining.toLocaleString()}
@@ -1380,8 +1401,8 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                     const total = filteredBOM.reduce((s,p) => s+(p.qtyPerUnit||1)*(Number(c.Quantity)||0), 0)
                     return <td key={c.Config} className="bm-flat-cell bm-cell-num" style={{...cw(c.Config), fontWeight:700}}>{total>0?total.toLocaleString():'—'}</td>
                   })}
-                  <td style={{ width:DEL_W, background:'#eff6ff', borderLeft:'2px solid #94a3b8' }} />
-                  <td style={{ width:DEL_W, background:'#f0fdf4' }} />
+                  <td style={{ width:totalW, background:'#eff6ff', borderLeft:'2px solid #94a3b8' }} />
+                  <td style={{ width:balW, background:'#f0fdf4' }} />
                   <td style={{ width:36, background:'#f8fafc' }} />
                 </tr>
               )}
