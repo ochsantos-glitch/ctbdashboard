@@ -1205,7 +1205,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                       background: bg, color: fg,
                       border:'1px solid #e2e8f0', zIndex:3, verticalAlign:'top' }}>
                       <div style={{ display:'flex', alignItems:'stretch' }}>
-                        <div style={{ flex:1, padding:'4px 6px', display:'flex', flexDirection:'column', gap:3, alignItems:'flex-end', overflow:'hidden' }}>
+                        <div style={{ flex:1, padding:'4px 6px', display:'flex', flexDirection:'column', gap:3, alignItems:'flex-start', overflow:'hidden' }}>
                           <span style={{ fontWeight:800, letterSpacing:'0.03em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' }}>{c.Config}</span>
                           <div className="bm-config-header-actions" style={{ display:'flex', gap:2 }}>
                             <button className="bm-hdr-btn" onClick={() => setEditingCfg(c)}>✎</button>
@@ -1225,7 +1225,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                   borderLeft:'2px solid #94a3b8', verticalAlign:'middle', overflow:'hidden',
                   width:totalW, minWidth:totalW, maxWidth:totalW }}>
                   <div style={{ display:'flex', alignItems:'stretch', height:'100%', minHeight:28 }}>
-                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', whiteSpace:'nowrap', overflow:'hidden' }}>
+                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'flex-start', whiteSpace:'nowrap', overflow:'hidden' }}>
                       Total Shipment Qty
                     </span>
                     <div
@@ -1240,7 +1240,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                   verticalAlign:'middle', overflow:'hidden',
                   width:balW, minWidth:balW, maxWidth:balW }}>
                   <div style={{ display:'flex', alignItems:'stretch', height:'100%', minHeight:28 }}>
-                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', whiteSpace:'nowrap', overflow:'hidden' }}>
+                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'flex-start', whiteSpace:'nowrap', overflow:'hidden' }}>
                       Balance Qty
                     </span>
                     <div
