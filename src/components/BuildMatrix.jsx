@@ -1220,23 +1220,23 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                 })}
                 <td style={{ fontSize:10, fontWeight:700, padding:'4px 6px',
                   background:'#eff6ff', color:'#1d4ed8', border:'1px solid #e2e8f0',
-                  borderLeft:'2px solid #94a3b8', verticalAlign:'middle',
-                  width:totalW, minWidth:totalW, position:'relative' }}>
+                  borderLeft:'2px solid #94a3b8', verticalAlign:'middle', overflow:'hidden',
+                  width:totalW, minWidth:totalW, maxWidth:totalW, position:'relative' }}>
                   Total Shipment Qty
-                  <div onMouseDown={e => startTotalResize(e, 'total')}
-                    style={{ position:'absolute', right:0, top:0, bottom:0, width:6, cursor:'col-resize', background:'rgba(29,78,216,0.2)', zIndex:1 }}
-                    onMouseEnter={e => e.currentTarget.style.background='rgba(29,78,216,0.5)'}
-                    onMouseLeave={e => e.currentTarget.style.background='rgba(29,78,216,0.2)'} />
+                  <div onMouseDown={e => { e.stopPropagation(); startTotalResize(e, 'total') }}
+                    style={{ position:'absolute', right:0, top:0, bottom:0, width:6, cursor:'col-resize', background:'rgba(29,78,216,0.25)' }}
+                    onMouseEnter={e => e.currentTarget.style.background='rgba(29,78,216,0.6)'}
+                    onMouseLeave={e => e.currentTarget.style.background='rgba(29,78,216,0.25)'} />
                 </td>
                 <td style={{ fontSize:10, fontWeight:700, padding:'4px 6px',
                   background:'#f0fdf4', color:'#15803d', border:'1px solid #e2e8f0',
-                  verticalAlign:'middle',
-                  width:balW, minWidth:balW, position:'relative' }}>
+                  verticalAlign:'middle', overflow:'hidden',
+                  width:balW, minWidth:balW, maxWidth:balW, position:'relative' }}>
                   Balance Qty
-                  <div onMouseDown={e => startTotalResize(e, 'bal')}
-                    style={{ position:'absolute', right:0, top:0, bottom:0, width:6, cursor:'col-resize', background:'rgba(21,128,61,0.2)', zIndex:1 }}
-                    onMouseEnter={e => e.currentTarget.style.background='rgba(21,128,61,0.5)'}
-                    onMouseLeave={e => e.currentTarget.style.background='rgba(21,128,61,0.2)'} />
+                  <div onMouseDown={e => { e.stopPropagation(); startTotalResize(e, 'bal') }}
+                    style={{ position:'absolute', right:0, top:0, bottom:0, width:6, cursor:'col-resize', background:'rgba(21,128,61,0.25)' }}
+                    onMouseEnter={e => e.currentTarget.style.background='rgba(21,128,61,0.6)'}
+                    onMouseLeave={e => e.currentTarget.style.background='rgba(21,128,61,0.25)'} />
                 </td>
                 <td style={{ position:'sticky', top:0, width:36, minWidth:36,
                   background:'#f8fafc', border:'1px solid #e2e8f0', zIndex:3 }} />
