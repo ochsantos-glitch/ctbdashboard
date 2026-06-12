@@ -865,15 +865,17 @@ function BOMPartsTable({ bom, builds, scrollRef, onTableScroll }) {
 // ── Unified Current View (config summary + BOM in one aligned table) ─────────
 function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocations, logChange, stageLabel, allBuilds }) {
   const NUM_FX = 7
+  const BM_COL_DEFAULTS = [120, 180, 60, 130, 140, 80, 70]
   const [colWidths, setColWidths] = useState(() => {
     try {
       const s = localStorage.getItem('bm-col-widths')
       if (s) {
         const parsed = JSON.parse(s)
-        return parsed.slice(0, 7) // trim any extra from old saves
+        const trimmed = parsed.slice(0, 7)
+        return BM_COL_DEFAULTS.map((def, i) => (trimmed[i] != null && !isNaN(trimmed[i])) ? trimmed[i] : def)
       }
     } catch {}
-    return [120, 180, 60, 130, 140, 80, 70]
+    return BM_COL_DEFAULTS
   })
   const SL = colWidths.map((_, i) => colWidths.slice(0, i).reduce((s, w) => s + w, 0))
   const [cfgColWidths, setCfgColWidths] = useState(() => {
@@ -953,8 +955,8 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
     setEditCell(null)
   }
 
-  const [totalW, setTotalW] = useState(() => { try { return Number(localStorage.getItem('bm-total-w')) || 100 } catch { return 100 } })
-  const [balW,   setBalW]   = useState(() => { try { return Number(localStorage.getItem('bm-bal-w'))   || 100 } catch { return 100 } })
+  const [totalW, setTotalW] = useState(() => { try { const v = Number(localStorage.getItem('bm-total-w')); return (v >= 60 && v <= 400) ? v : 130 } catch { return 130 } })
+  const [balW,   setBalW]   = useState(() => { try { const v = Number(localStorage.getItem('bm-bal-w'));   return (v >= 60 && v <= 400) ? v : 110 } catch { return 110 } })
   useEffect(() => { localStorage.setItem('bm-total-w', totalW) }, [totalW])
   useEffect(() => { localStorage.setItem('bm-bal-w',   balW)   }, [balW])
   function hdrStyle(ci, extra = {}) {
@@ -1218,25 +1220,35 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                     </td>
                   )
                 })}
-                <td style={{ fontSize:10, fontWeight:700, padding:'4px 6px',
+                <td style={{ fontSize:10, fontWeight:700, padding:0,
                   background:'#eff6ff', color:'#1d4ed8', border:'1px solid #e2e8f0',
                   borderLeft:'2px solid #94a3b8', verticalAlign:'middle', overflow:'hidden',
-                  width:totalW, minWidth:totalW, maxWidth:totalW, position:'relative' }}>
-                  Total Shipment Qty
-                  <div onMouseDown={e => { e.stopPropagation(); startTotalResize(e, 'total') }}
-                    style={{ position:'absolute', right:0, top:0, bottom:0, width:6, cursor:'col-resize', background:'rgba(29,78,216,0.25)' }}
-                    onMouseEnter={e => e.currentTarget.style.background='rgba(29,78,216,0.6)'}
-                    onMouseLeave={e => e.currentTarget.style.background='rgba(29,78,216,0.25)'} />
+                  width:totalW, minWidth:totalW, maxWidth:totalW }}>
+                  <div style={{ display:'flex', alignItems:'stretch', height:'100%', minHeight:28 }}>
+                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', whiteSpace:'nowrap', overflow:'hidden' }}>
+                      Total Shipment Qty
+                    </span>
+                    <div
+                      onMouseDown={e => { e.stopPropagation(); e.preventDefault(); startTotalResize(e, 'total') }}
+                      style={{ width:6, flexShrink:0, cursor:'col-resize', background:'rgba(29,78,216,0.2)', alignSelf:'stretch' }}
+                      onMouseEnter={e => e.currentTarget.style.background='rgba(29,78,216,0.6)'}
+                      onMouseLeave={e => e.currentTarget.style.background='rgba(29,78,216,0.2)'} />
+                  </div>
                 </td>
-                <td style={{ fontSize:10, fontWeight:700, padding:'4px 6px',
+                <td style={{ fontSize:10, fontWeight:700, padding:0,
                   background:'#f0fdf4', color:'#15803d', border:'1px solid #e2e8f0',
                   verticalAlign:'middle', overflow:'hidden',
-                  width:balW, minWidth:balW, maxWidth:balW, position:'relative' }}>
-                  Balance Qty
-                  <div onMouseDown={e => { e.stopPropagation(); startTotalResize(e, 'bal') }}
-                    style={{ position:'absolute', right:0, top:0, bottom:0, width:6, cursor:'col-resize', background:'rgba(21,128,61,0.25)' }}
-                    onMouseEnter={e => e.currentTarget.style.background='rgba(21,128,61,0.6)'}
-                    onMouseLeave={e => e.currentTarget.style.background='rgba(21,128,61,0.25)'} />
+                  width:balW, minWidth:balW, maxWidth:balW }}>
+                  <div style={{ display:'flex', alignItems:'stretch', height:'100%', minHeight:28 }}>
+                    <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', whiteSpace:'nowrap', overflow:'hidden' }}>
+                      Balance Qty
+                    </span>
+                    <div
+                      onMouseDown={e => { e.stopPropagation(); e.preventDefault(); startTotalResize(e, 'bal') }}
+                      style={{ width:6, flexShrink:0, cursor:'col-resize', background:'rgba(21,128,61,0.2)', alignSelf:'stretch' }}
+                      onMouseEnter={e => e.currentTarget.style.background='rgba(21,128,61,0.6)'}
+                      onMouseLeave={e => e.currentTarget.style.background='rgba(21,128,61,0.2)'} />
+                  </div>
                 </td>
                 <td style={{ position:'sticky', top:0, width:36, minWidth:36,
                   background:'#f8fafc', border:'1px solid #e2e8f0', zIndex:3 }} />
