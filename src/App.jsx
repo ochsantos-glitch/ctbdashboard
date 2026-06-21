@@ -15,6 +15,7 @@ import MaterialRequest from './components/MaterialRequest'
 import DevTrack from './components/DevTrack'
 import Materials from './components/Materials'
 import Allocation from './components/Allocation'
+import Quotation from './components/Quotation'
 import { calcAlerts, calcMaterialShortages } from './utils/alertEngine'
 
 const DEFAULT_PLAN = {
@@ -171,6 +172,7 @@ function App() {
     { id: 'msdevtrack',  label: 'MSDevTrack' },
     { id: 'materials',   label: 'Materials' },
     { id: 'allocation',  label: 'Allocation' },
+    { id: 'quotations',  label: 'Quotations' },
     { id: 'reports',     label: 'Reports' },
     { id: 'settings',    label: 'Settings' },
   ]
@@ -233,6 +235,8 @@ function App() {
             builds={builds}
           />
         )
+      case 'quotations':
+        return <Quotation />
       case 'alerts':
         return <AlertsPage alerts={alerts} onNavigate={setActivePage} />
       default:

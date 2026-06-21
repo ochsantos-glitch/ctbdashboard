@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/Users/ochsantos/Library/Mobile Documents/com~apple~CloudDocs/GenAI Tools_Och/Supply Chain PM/ctbdashboard-mine/deploy.sh\" \"Auto-deploy after session\" 2>/dev/null || true",
+            "timeout": 60,
+            "statusMessage": "Pushing changes to GitHub..."
+          }
+        ]
+      }
+    ]
+  }
+}
