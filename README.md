@@ -1,16 +1,63 @@
-# React + Vite
+# CTB Dashboard — Supply Chain PM Tool
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web-based Supply Chain Project Management dashboard for tracking builds, materials, allocations, budgets, and supplier data.
 
-Currently, two official plugins are available:
+**Live site:** https://ctbdashboard-mine.vercel.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Screenshot
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+> *(Add a screenshot here as the project progresses)*
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Features
+
+- **Dashboard** — High-level overview of project status
+- **Build Matrix** — Track build configurations and parts
+- **BOM Explorer** — Browse and manage Bills of Materials
+- **Allocation** — Manage material allocations and recipient notifications
+- **Inventory** — Monitor stock levels
+- **Materials & Material Requests** — Track material needs and requests
+- **Quotation** — Manage supplier quotes
+- **Supplier Matrix** — Supplier comparison and tracking
+- **Budget** — Budget tracking and reporting
+- **Dev Track** — Development progress tracker
+- **QR Code scanning** — Scan parts via camera
+
+## Tech Stack
+
+- React 19 + Vite
+- EmailJS (email notifications)
+- PapaParse (CSV import)
+- SheetJS / xlsx (Excel import/export)
+- html5-qrcode (QR scanning)
+- Deployed on Vercel
+
+## Run Locally
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+## Project Structure
+
+```
+src/
+  components/       # All page/feature components
+  data/             # Static data files
+  utils/            # Utility functions
+  buildData.js      # Build configuration data
+```
+
+## Repository
+
+https://github.com/ochsantos-glitch/ctbdashboard

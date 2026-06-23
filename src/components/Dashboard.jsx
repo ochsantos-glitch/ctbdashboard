@@ -3,22 +3,34 @@ import EditableCell from './EditableCell'
 
 // ── Program Timeline data ─────────────────────────────────────────────────────
 const MONTHS = [
-  { name: 'May',  weeks: [1, 2, 3, 4] },
-  { name: 'June', weeks: [1, 2, 3, 4] },
-  { name: 'July', weeks: [1, 2, 3, 4] },
+  { name: 'June',   weeks: [1, 2, 3, 4] },
+  { name: 'July',   weeks: [1, 2, 3, 4] },
+  { name: 'August', weeks: [1, 2, 3, 4] },
 ]
 
 const TIMELINE_PHASES = [
-  { label: 'Supply Chain', cells: ['done','done','done','done','done','done','go','go', null, null, null, null] },
-  { label: 'SMT',          cells: [null, null,'done','done','done','done','go','go', null, null, null, null] },
-  { label: 'FATP',         cells: [null, null, null, null,'done','done','go','go','go', null, null, null] },
-  { label: 'ECO',          cells: [null, null, null,'risk','risk', null, null, null, null, null, null, null] },
+  { label: 'Supply Chain', cells: ['done','done','go','go', null, null, null, null, null, null, null, null] },
+  { label: 'SMT',          cells: ['done','done','go','go', null, null, null, null, null, null, null, null] },
+  { label: 'FATP',         cells: ['done','done','go','go','go', null, null, null, null, null, null, null] },
+  { label: 'ECO',          cells: ['risk', null, null, null, null, null, null, null, null, null, null, null] },
 ]
 
 const RISKS = [
-  { owner: 'MPM',     concern: 'Nand 128G not enough material / Supplier 1', completion: 'May Wk2' },
-  { owner: 'MLB SMT', concern: 'SW 15.0 pending release',                    completion: 'May Wk2' },
+  { owner: 'MPM',     concern: 'Nand 128G not enough material / Supplier 1', completion: 'Jun Wk2' },
+  { owner: 'MLB SMT', concern: 'SW 15.0 pending release',                    completion: 'Jun Wk2' },
 ]
+
+function getCurrentWeekCol() {
+  const today = new Date()
+  const todayMonth = today.toLocaleString('default', { month: 'long' })
+  const weekOfMonth = Math.min(Math.ceil(today.getDate() / 7), 4)
+  let col = 0
+  for (const m of MONTHS) {
+    if (m.name === todayMonth) return col + weekOfMonth - 1
+    col += m.weeks.length
+  }
+  return -1
+}
 
 const DEFAULT_PLAN = {
   smt: [
@@ -287,9 +299,12 @@ export default function Dashboard({ projects, setProjects, activeProjectId, setA
                 </tr>
                 <tr>
                   <th className="tl-label-col" />
-                  {MONTHS.flatMap(m => m.weeks.map(w => (
-                    <th key={`${m.name}-${w}`} className="tl-week-header">{w}</th>
-                  )))}
+                  {MONTHS.flatMap((m, mi) => m.weeks.map((w, wi) => {
+                    const col = MONTHS.slice(0, mi).reduce((s, pm) => s + pm.weeks.length, 0) + wi
+                    return (
+                      <th key={`${m.name}-${w}`} className={`tl-week-header${col === getCurrentWeekCol() ? ' tl-current-week' : ''}`}>{w}</th>
+                    )
+                  }))}
                 </tr>
               </thead>
               <tbody>
@@ -297,7 +312,7 @@ export default function Dashboard({ projects, setProjects, activeProjectId, setA
                   <tr key={phase.label}>
                     <td className="tl-label">{phase.label}</td>
                     {phase.cells.map((status, i) => (
-                      <td key={i} className={`tl-cell${status ? ` tl-${status}` : ''}`} />
+                      <td key={i} className={`tl-cell${status ? ` tl-${status}` : ''}${i === getCurrentWeekCol() ? ' tl-current-week-col' : ''}`} />
                     ))}
                   </tr>
                 ))}

@@ -1158,6 +1158,8 @@
 .tl-done  { background: #bfdbfe; }
 .tl-go    { background: #fed7aa; }
 .tl-risk  { background: #fca5a5; }
+.tl-current-week     { background: #fef08a; color: #854d0e; font-weight: 700; }
+.tl-current-week-col { outline: 2px solid #eab308; outline-offset: -2px; }
 
 .tl-spacer {
   height: 10px;
