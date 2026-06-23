@@ -1433,26 +1433,39 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                                   style={{ fontSize:12, padding:'1px 5px', borderRadius:3, border:'1px solid #e2e8f0', background:'#f1f5f9', cursor:'pointer', color:'#64748b' }}>↺</button>
                               </div>
                             </div>
-                          ) : (
-                            <div style={{ cursor:'pointer', padding:'2px 6px', textAlign:'right', color: fg, fontWeight: qty!=null?700:400 }}
-                              title="Click to override qty or set % allocation"
-                              onClick={()=>{
-                                setEditingCfgQty({partId:part.id, configName:c.Config})
-                                const ep = part.configPctAllocs?.[c.Config]
-                                const eo = part.configQtyOverrides?.[c.Config]
-                                if (ep != null) { setCfgQtyMode('pct'); setCfgQtyDraft(String(ep)) }
-                                else if (eo != null) { setCfgQtyMode('qty'); setCfgQtyDraft(String(eo)) }
-                                else { setCfgQtyMode('qty'); setCfgQtyDraft('') }
-                              }}>
-                              {qty != null ? (
-                                <span>
-                                  {qty.toLocaleString()}
-                                  {isPct && <span style={{fontSize:9,marginLeft:2,opacity:0.8}}>{pct}%</span>}
-                                  {isOverride && <span style={{fontSize:9,marginLeft:2,opacity:0.8}}>*</span>}
-                                </span>
-                              ) : <span className="tm-na-dash">—</span>}
-                            </div>
-                          )}
+                          ) : (() => {
+                            const targetOut  = Number(c.targetOutput ?? c.Quantity) || 0
+                            const expectedQty = (part.qtyPerUnit||1) * targetOut
+                            const diff = qty != null ? qty - expectedQty : null
+                            const alertLvl = (isPct || isOverride) && diff != null
+                              ? diff < 0 ? 'low' : diff > 0 ? 'high' : 'ok'
+                              : null
+                            return (
+                              <div style={{ cursor:'pointer', padding:'2px 6px', textAlign:'right', color: fg, fontWeight: qty!=null?700:400 }}
+                                title={alertLvl==='low' ? `⚠ Shortage: ${diff} vs target (${expectedQty})` : alertLvl==='high' ? `↑ Excess: +${diff} vs target (${expectedQty})` : 'Click to override qty or set % allocation'}
+                                onClick={()=>{
+                                  setEditingCfgQty({partId:part.id, configName:c.Config})
+                                  const ep = part.configPctAllocs?.[c.Config]
+                                  const eo = part.configQtyOverrides?.[c.Config]
+                                  if (ep != null) { setCfgQtyMode('pct'); setCfgQtyDraft(String(ep)) }
+                                  else if (eo != null) { setCfgQtyMode('qty'); setCfgQtyDraft(String(eo)) }
+                                  else { setCfgQtyMode('qty'); setCfgQtyDraft('') }
+                                }}>
+                                {qty != null ? (
+                                  <>
+                                    <span>
+                                      {qty.toLocaleString()}
+                                      {isPct && <span style={{fontSize:9,marginLeft:2,opacity:0.8}}>{pct}%</span>}
+                                      {isOverride && <span style={{fontSize:9,marginLeft:2,opacity:0.8}}>*</span>}
+                                    </span>
+                                    {alertLvl === 'low'  && <div style={{fontSize:9,color:'#dc2626',fontWeight:700,lineHeight:1.2}}>⚠ {diff} vs target</div>}
+                                    {alertLvl === 'high' && <div style={{fontSize:9,color:'#d97706',fontWeight:700,lineHeight:1.2}}>↑ +{diff} vs target</div>}
+                                    {alertLvl === 'ok'   && <div style={{fontSize:9,color:'#16a34a',fontWeight:700,lineHeight:1.2}}>✓ on target</div>}
+                                  </>
+                                ) : <span className="tm-na-dash">—</span>}
+                              </div>
+                            )
+                          })()}
                         </td>
                       )
                     })}
