@@ -1434,15 +1434,28 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                               </div>
                             </div>
                           ) : (() => {
-                            const targetOut  = Number(c.targetOutput ?? c.Quantity) || 0
+                            const targetOut   = Number(c.targetOutput ?? c.Quantity) || 0
                             const expectedQty = (part.qtyPerUnit||1) * targetOut
-                            const diff = qty != null ? qty - expectedQty : null
-                            const alertLvl = (isPct || isOverride) && diff != null
-                              ? diff < 0 ? 'low' : diff > 0 ? 'high' : 'ok'
-                              : null
+                            const partPN      = (part.kpn || part.lab126pn || '').trim()
+                            const isAlt       = (part.configFilter||'').trim().toLowerCase() === 'alt'
+                            const altGroup    = partPN ? bom.filter(p => (p.kpn||p.lab126pn||'').trim() === partPN) : []
+                            const isGrouped   = altGroup.length > 1
+                            const hasAnyOverride = isGrouped
+                              ? altGroup.some(p => p.configPctAllocs?.[c.Config] != null || p.configQtyOverrides?.[c.Config] != null)
+                              : (isPct || isOverride)
+                            const combinedQty = isGrouped
+                              ? altGroup.reduce((s, p) => { const { qty: q } = resolvePartQty(p, c); return q != null ? s + q : s }, 0)
+                              : qty
+                            const diff     = hasAnyOverride && combinedQty != null ? combinedQty - expectedQty : null
+                            const alertLvl = diff != null ? (diff < 0 ? 'low' : diff > 0 ? 'high' : 'ok') : null
+                            const alertTitle = alertLvl === 'low'
+                              ? `⚠ Shortage: combined ${combinedQty} vs target ${expectedQty} (${isGrouped?'sum of alternates':'this part'})`
+                              : alertLvl === 'high'
+                              ? `↑ Excess: combined ${combinedQty} vs target ${expectedQty}`
+                              : 'Click to override qty or set % allocation'
                             return (
                               <div style={{ cursor:'pointer', padding:'2px 6px', textAlign:'right', color: fg, fontWeight: qty!=null?700:400 }}
-                                title={alertLvl==='low' ? `⚠ Shortage: ${diff} vs target (${expectedQty})` : alertLvl==='high' ? `↑ Excess: +${diff} vs target (${expectedQty})` : 'Click to override qty or set % allocation'}
+                                title={alertTitle}
                                 onClick={()=>{
                                   setEditingCfgQty({partId:part.id, configName:c.Config})
                                   const ep = part.configPctAllocs?.[c.Config]
@@ -1458,9 +1471,9 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                                       {isPct && <span style={{fontSize:9,marginLeft:2,opacity:0.8}}>{pct}%</span>}
                                       {isOverride && <span style={{fontSize:9,marginLeft:2,opacity:0.8}}>*</span>}
                                     </span>
-                                    {alertLvl === 'low'  && <div style={{fontSize:9,color:'#dc2626',fontWeight:700,lineHeight:1.2}}>⚠ {diff} vs target</div>}
-                                    {alertLvl === 'high' && <div style={{fontSize:9,color:'#d97706',fontWeight:700,lineHeight:1.2}}>↑ +{diff} vs target</div>}
-                                    {alertLvl === 'ok'   && <div style={{fontSize:9,color:'#16a34a',fontWeight:700,lineHeight:1.2}}>✓ on target</div>}
+                                    {alertLvl === 'low'  && <div style={{fontSize:9,color:'#dc2626',fontWeight:700,lineHeight:1.2}}>⚠ combined {combinedQty} / {expectedQty}</div>}
+                                    {alertLvl === 'high' && <div style={{fontSize:9,color:'#d97706',fontWeight:700,lineHeight:1.2}}>↑ combined {combinedQty} / {expectedQty}</div>}
+                                    {alertLvl === 'ok'   && <div style={{fontSize:9,color:'#16a34a',fontWeight:700,lineHeight:1.2}}>✓ {isGrouped?'combined ':''}on target</div>}
                                   </>
                                 ) : <span className="tm-na-dash">—</span>}
                               </div>
