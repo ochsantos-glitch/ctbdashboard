@@ -537,7 +537,15 @@ function ConfigSummary({ builds, setBuilds, bom, alerts, allocations, customRows
   const [editingCell,   setEditingCell]   = useState(null)
   const [draft,         setDraft]         = useState('')
 
-  const filtered = builds.filter(b => b.Config.toLowerCase().includes(configSearch.toLowerCase()))
+  const filtered = builds
+    .filter(b => b.Config.toLowerCase().includes(configSearch.toLowerCase()))
+    .sort((a, b) => {
+      const da = a['Build Date'] || '', db = b['Build Date'] || ''
+      if (!da && !db) return 0
+      if (!da) return 1
+      if (!db) return -1
+      return da.localeCompare(db)
+    })
 
   const totalInput = builds.reduce((s, b) => s + (Number(b.Quantity) || 0), 0)
   const totalAlloc = allocations.reduce((s, a) => s + (a.rows || []).reduce((rs, r) => rs + (Number(r.qty) || 0), 0), 0)
@@ -933,7 +941,15 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
   const [addingPart,  setAddingPart]  = useState(false)
   const [newPartData, setNewPartData] = useState({})
 
-  const filteredCfgs = builds.filter(c => c.Config.toLowerCase().includes(cfgSearch.toLowerCase()))
+  const filteredCfgs = builds
+    .filter(c => c.Config.toLowerCase().includes(cfgSearch.toLowerCase()))
+    .sort((a, b) => {
+      const da = a['Build Date'] || '', db = b['Build Date'] || ''
+      if (!da && !db) return 0
+      if (!da) return 1
+      if (!db) return -1
+      return da.localeCompare(db)
+    })
   const filteredBOM  = useMemo(() => bom.filter(p =>
     (filterBoard === 'all' || p.appliesTo === filterBoard) &&
     (filterCat   === 'all' || p.category  === filterCat)  &&
