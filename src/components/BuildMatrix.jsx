@@ -938,8 +938,11 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
   const [filterDesc,  setFilterDesc]  = useState('')
   const [filterMFR,   setFilterMFR]   = useState('')
   const [filterMPN,   setFilterMPN]   = useState('')
-  const [addingPart,  setAddingPart]  = useState(false)
-  const [newPartData, setNewPartData] = useState({})
+  const [addingPart,    setAddingPart]    = useState(false)
+  const [newPartData,   setNewPartData]   = useState({})
+  const [editingCfgQty, setEditingCfgQty] = useState(null) // { partId, configName }
+  const [cfgQtyDraft,   setCfgQtyDraft]   = useState('')
+  const [cfgQtyMode,    setCfgQtyMode]    = useState('qty') // 'qty' | 'pct'
 
   const filteredCfgs = builds
     .filter(c => c.Config.toLowerCase().includes(cfgSearch.toLowerCase()))
@@ -988,6 +991,26 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
   function partAppliesTo(part, configName) {
     if (!part.configFilter) return true
     return part.configFilter.split(',').map(s => s.trim().toUpperCase()).includes(configName.toUpperCase())
+  }
+  function resolvePartQty(part, config) {
+    const pct = part.configPctAllocs?.[config.Config]
+    if (pct != null) return { qty: Math.round((Number(part.deliveryQty)||0) * pct / 100), isPct: true, pct, isOverride: false }
+    const ov = part.configQtyOverrides?.[config.Config]
+    if (ov != null) return { qty: ov, isPct: false, pct: null, isOverride: true }
+    if (!partAppliesTo(part, config.Config)) return { qty: null, isPct: false, pct: null, isOverride: false }
+    return { qty: (part.qtyPerUnit||1) * (Number(config.Quantity)||0), isPct: false, pct: null, isOverride: false }
+  }
+  function savePartCfgQty(partId, configName, value, mode) {
+    setBom(prev => prev.map(p => {
+      if (p.id !== partId) return p
+      const newPct = { ...(p.configPctAllocs  || {}) }
+      const newOv  = { ...(p.configQtyOverrides || {}) }
+      if (value === '' || value == null) { delete newPct[configName]; delete newOv[configName] }
+      else if (mode === 'pct') { newPct[configName] = Number(value)||0; delete newOv[configName] }
+      else                     { newOv[configName]  = Number(value)||0; delete newPct[configName] }
+      return { ...p, configPctAllocs: newPct, configQtyOverrides: newOv }
+    }))
+    setEditingCfgQty(null)
   }
   function cw(name) { const w = getCfgW(name); return { width: w, maxWidth: w, overflow:'hidden' } }
   function cfgLabelCell(label, style = {}) {
@@ -1300,7 +1323,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
               {filteredBOM.length === 0 ? (
                 <tr><td colSpan={NUM_FX+filteredCfgs.length} className="bm-empty-row">No parts match filters.</td></tr>
               ) : filteredBOM.map(part => {
-                const totalUsage = builds.reduce((s,c) => partAppliesTo(part,c.Config) ? s + (part.qtyPerUnit||1)*(Number(c.Quantity)||0) : s, 0)
+                const totalUsage = builds.reduce((s,c) => { const r = resolvePartQty(part,c); return r.qty != null ? s + r.qty : s }, 0)
                 const remaining  = part.deliveryQty != null ? part.deliveryQty - totalUsage : null
                 const isEdPart = (field) => editingPart?.partId === part.id && editingPart?.field === field
                 return (
@@ -1385,17 +1408,51 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                           : <span style={{fontSize:10,color:'#94a3b8'}}>All</span>}
                     </td>
                     {filteredCfgs.map(c => {
-                      const applies = partAppliesTo(part, c.Config)
-                      const qty = applies ? (part.qtyPerUnit||1)*(Number(c.Quantity)||0) : null
-                      const col = typeColor(c.Type)
+                      const { qty, isPct, pct, isOverride } = resolvePartQty(part, c)
+                      const col     = typeColor(c.Type)
+                      const isEditing = editingCfgQty?.partId === part.id && editingCfgQty?.configName === c.Config
+                      const bg = isPct ? '#fef3c7' : isOverride ? '#dbeafe' : qty != null ? col.header : '#f8fafc'
+                      const fg = isPct ? '#b45309' : isOverride ? '#1d4ed8' : qty != null ? col.text : '#cbd5e1'
                       return (
-                        <td key={c.Config} className="bm-flat-cell" style={{
-                          ...cw(c.Config), textAlign:'right', fontSize:12,
-                          background: applies ? col.header : '#f8fafc',
-                          color: applies ? col.text : '#cbd5e1',
-                          fontWeight: applies ? 700 : 400,
-                        }}>
-                          {qty != null ? qty.toLocaleString() : <span className="tm-na-dash">—</span>}
+                        <td key={c.Config} className="bm-flat-cell" style={{ ...cw(c.Config), fontSize:12, background: bg, padding:0, verticalAlign:'middle', overflow:'visible', position:'relative' }}>
+                          {isEditing ? (
+                            <div style={{ position:'absolute', top:0, left:0, zIndex:10, background:'#fff', border:'2px solid #6366f1', borderRadius:6, padding:'4px 6px', boxShadow:'0 4px 12px rgba(0,0,0,0.15)', minWidth:130, display:'flex', flexDirection:'column', gap:4 }}>
+                              <div style={{ display:'flex', gap:3 }}>
+                                <button onClick={()=>setCfgQtyMode('qty')} style={{ flex:1, fontSize:10, padding:'2px 4px', borderRadius:3, border:'1px solid #e2e8f0', background: cfgQtyMode==='qty'?'#6366f1':'#f1f5f9', color: cfgQtyMode==='qty'?'#fff':'#475569', cursor:'pointer', fontWeight:700 }}>Qty</button>
+                                <button onClick={()=>setCfgQtyMode('pct')} style={{ flex:1, fontSize:10, padding:'2px 4px', borderRadius:3, border:'1px solid #e2e8f0', background: cfgQtyMode==='pct'?'#f59e0b':'#f1f5f9', color: cfgQtyMode==='pct'?'#fff':'#475569', cursor:'pointer', fontWeight:700 }}>% of ship</button>
+                              </div>
+                              <div style={{ display:'flex', gap:3, alignItems:'center' }}>
+                                <input type="number" className="bm-inline-input" value={cfgQtyDraft} autoFocus min={0}
+                                  placeholder={cfgQtyMode==='pct'?'0–100':'qty'}
+                                  style={{ width:60, textAlign:'right', fontSize:11 }}
+                                  onChange={e=>setCfgQtyDraft(e.target.value)}
+                                  onKeyDown={e=>{ if(e.key==='Enter') savePartCfgQty(part.id,c.Config,cfgQtyDraft,cfgQtyMode); if(e.key==='Escape') setEditingCfgQty(null) }}
+                                  onBlur={()=>savePartCfgQty(part.id,c.Config,cfgQtyDraft,cfgQtyMode)} />
+                                <span style={{ fontSize:10, color:'#64748b' }}>{cfgQtyMode==='pct'?'%':'pcs'}</span>
+                                <button title="Reset to auto" onClick={()=>savePartCfgQty(part.id,c.Config,'',cfgQtyMode)}
+                                  style={{ fontSize:12, padding:'1px 5px', borderRadius:3, border:'1px solid #e2e8f0', background:'#f1f5f9', cursor:'pointer', color:'#64748b' }}>↺</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ cursor:'pointer', padding:'2px 6px', textAlign:'right', color: fg, fontWeight: qty!=null?700:400 }}
+                              title="Click to override qty or set % allocation"
+                              onClick={()=>{
+                                setEditingCfgQty({partId:part.id, configName:c.Config})
+                                const ep = part.configPctAllocs?.[c.Config]
+                                const eo = part.configQtyOverrides?.[c.Config]
+                                if (ep != null) { setCfgQtyMode('pct'); setCfgQtyDraft(String(ep)) }
+                                else if (eo != null) { setCfgQtyMode('qty'); setCfgQtyDraft(String(eo)) }
+                                else { setCfgQtyMode('qty'); setCfgQtyDraft('') }
+                              }}>
+                              {qty != null ? (
+                                <span>
+                                  {qty.toLocaleString()}
+                                  {isPct && <span style={{fontSize:9,marginLeft:2,opacity:0.8}}>{pct}%</span>}
+                                  {isOverride && <span style={{fontSize:9,marginLeft:2,opacity:0.8}}>*</span>}
+                                </span>
+                              ) : <span className="tm-na-dash">—</span>}
+                            </div>
+                          )}
                         </td>
                       )
                     })}
@@ -1448,7 +1505,7 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                   <td style={{ position:'sticky', left:SL[6], zIndex:1, background:'#f8fafc' }}></td>
                   <td style={{ position:'sticky', left:SL[7], zIndex:1, background:'#fef9c3', ...FRZ }}></td>
                   {filteredCfgs.map(c => {
-                    const total = filteredBOM.reduce((s,p) => partAppliesTo(p,c.Config) ? s+(p.qtyPerUnit||1)*(Number(c.Quantity)||0) : s, 0)
+                    const total = filteredBOM.reduce((s,p) => { const r=resolvePartQty(p,c); return r.qty!=null?s+r.qty:s }, 0)
                     return <td key={c.Config} className="bm-flat-cell bm-cell-num" style={{...cw(c.Config), fontWeight:700}}>{total>0?total.toLocaleString():'—'}</td>
                   })}
                   <td style={{ width:totalW, background:'#eff6ff', borderLeft:'2px solid #94a3b8' }} />
