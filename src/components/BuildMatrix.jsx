@@ -1481,7 +1481,6 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                                     </span>
                                     {alertLvl === 'low'  && <div style={{fontSize:9,color:'#dc2626',fontWeight:700,lineHeight:1.2}}>⚠ combined {combinedQty} / {expectedQty}</div>}
                                     {alertLvl === 'high' && <div style={{fontSize:9,color:'#d97706',fontWeight:700,lineHeight:1.2}}>↑ combined {combinedQty} / {expectedQty}</div>}
-                                    {alertLvl === 'ok'   && <div style={{fontSize:9,color:'#16a34a',fontWeight:700,lineHeight:1.2}}>✓ {isGrouped?'combined ':''}on target</div>}
                                   </>
                                 ) : <span className="tm-na-dash">—</span>}
                               </div>
