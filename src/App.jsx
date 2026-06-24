@@ -161,19 +161,21 @@ function App() {
 
   const navItems = [
     { id: 'dashboard',   label: 'Dashboard' },
+    { type: 'category',  label: 'Program Management' },
     { id: 'budget',      label: 'Budget' },
-    { id: 'bomExplorer', label: 'BOM Explorer' },
-    { id: 'suppliers',   label: 'Suppliers' },
     { id: 'buildMatrix', label: 'Build Matrix' },
     { id: 'alerts',      label: 'Alerts', badge: alertCount },
-    { id: 'orders',      label: 'Orders' },
-    { id: 'inventory',   label: 'Inventory' },
-    { id: 'requests',    label: 'Requests' },
     { id: 'msdevtrack',  label: 'MSDevTrack' },
+    { id: 'reports',     label: 'Reports' },
+    { type: 'category',  label: 'Supply Chain' },
+    { id: 'bomExplorer', label: 'BOM Explorer' },
+    { id: 'suppliers',   label: 'Suppliers' },
+    { id: 'inventory',   label: 'Inventory' },
     { id: 'materials',   label: 'Materials' },
+    { id: 'requests',    label: 'Requests' },
     { id: 'allocation',  label: 'Allocation' },
     { id: 'quotations',  label: 'Quotations' },
-    { id: 'reports',     label: 'Reports' },
+    { id: 'orders',      label: 'Orders' },
     { id: 'settings',    label: 'Settings' },
   ]
 
@@ -274,20 +276,24 @@ function App() {
           )}
         </div>
         <ul className="nav-menu">
-          {navItems.map(item => (
-            <li
-              key={item.id}
-              className={activePage === item.id ? 'active' : ''}
-              onClick={() => { setActivePage(item.id); setSidebarOpen(false) }}
-            >
-              {item.label}
-              {item.badge > 0 && (
-                <span className={`nav-badge ${dangerCount > 0 ? 'nav-badge-danger' : 'nav-badge-warning'}`}>
-                  {item.badge}
-                </span>
-              )}
-            </li>
-          ))}
+          {navItems.map((item, idx) =>
+            item.type === 'category' ? (
+              <li key={`cat-${idx}`} className="nav-category">{item.label}</li>
+            ) : (
+              <li
+                key={item.id}
+                className={activePage === item.id ? 'active' : ''}
+                onClick={() => { setActivePage(item.id); setSidebarOpen(false) }}
+              >
+                {item.label}
+                {item.badge > 0 && (
+                  <span className={`nav-badge ${dangerCount > 0 ? 'nav-badge-danger' : 'nav-badge-warning'}`}>
+                    {item.badge}
+                  </span>
+                )}
+              </li>
+            )
+          )}
         </ul>
 
         <div className="sidebar-export">

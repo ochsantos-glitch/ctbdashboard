@@ -135,6 +135,23 @@
   font-weight: bold;
 }
 
+.nav-menu li.nav-category {
+  padding: 14px 20px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b7280;
+  cursor: default;
+  pointer-events: none;
+  border-top: 1px solid #2a2a4a;
+  margin-top: 4px;
+}
+.nav-menu li.nav-category:first-child {
+  border-top: none;
+  margin-top: 0;
+}
+
 .sidebar-export {
   padding: 16px 20px;
   border-top: 1px solid #2a2a4a;
