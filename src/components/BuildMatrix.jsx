@@ -1116,10 +1116,11 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
       )}
 
       <div className="bm-unified-scroll">
-        <table style={{ tableLayout:'fixed', width: colWidths.reduce((s,w)=>s+w,0) + filteredCfgs.reduce((s,c)=>s+getCfgW(c.Config),0) + totalW + balW + 36, borderCollapse:'collapse', fontSize:11, background:'#fff' }}>
+        <table style={{ tableLayout:'fixed', width: colWidths.reduce((s,w)=>s+w,0) + filteredCfgs.reduce((s,c)=>s+getCfgW(c.Config),0) + 140 + totalW + balW + 36, borderCollapse:'collapse', fontSize:11, background:'#fff' }}>
           <colgroup>
             {colWidths.map((w,i) => <col key={i} style={{ width:w }} />)}
             {filteredCfgs.map(c => <col key={c.Config} style={{ width: getCfgW(c.Config) }} />)}
+            <col style={{ width: 140 }} />
             <col style={{ width: totalW }} />
             <col style={{ width: balW }} />
             <col style={{ width: 36 }} />
@@ -1265,9 +1266,15 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                     </td>
                   )
                 })}
+                <td style={{ fontSize:10, fontWeight:700, padding:'4px 6px',
+                  background:'#f5f3ff', color:'#6d28d9', border:'1px solid #e2e8f0',
+                  borderLeft:'2px solid #94a3b8', verticalAlign:'middle', overflow:'hidden',
+                  width:140, minWidth:140, maxWidth:140, whiteSpace:'nowrap' }}>
+                  Combined vs Need
+                </td>
                 <td style={{ fontSize:10, fontWeight:700, padding:0,
                   background:'#eff6ff', color:'#1d4ed8', border:'1px solid #e2e8f0',
-                  borderLeft:'2px solid #94a3b8', verticalAlign:'middle', overflow:'hidden',
+                  verticalAlign:'middle', overflow:'hidden',
                   width:totalW, minWidth:totalW, maxWidth:totalW }}>
                   <div style={{ display:'flex', alignItems:'stretch', height:'100%', minHeight:28 }}>
                     <span style={{ flex:1, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'flex-start', flexWrap:'wrap', overflow:'hidden' }}>
@@ -1316,7 +1323,8 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                 <td style={{ position:'sticky', left:SL[6], top:32, zIndex:5, background:'#f1f5f9', borderBottom:'2px solid #cbd5e1' }} />
                 <td style={{ position:'sticky', left:SL[7], top:32, zIndex:5, background:'#fef9c3', borderBottom:'2px solid #cbd5e1', ...FRZ }} />
                 {filteredCfgs.map(c => <td key={c.Config} style={{...cw(c.Config), background:'#f1f5f9', borderBottom:'2px solid #cbd5e1', padding:0}} />)}
-                <td style={{ width:totalW, minWidth:totalW, background:'#eff6ff', borderBottom:'2px solid #cbd5e1', borderLeft:'2px solid #94a3b8' }} />
+                <td style={{ width:140, minWidth:140, background:'#f5f3ff', borderBottom:'2px solid #cbd5e1', borderLeft:'2px solid #94a3b8' }} />
+                <td style={{ width:totalW, minWidth:totalW, background:'#eff6ff', borderBottom:'2px solid #cbd5e1' }} />
                 <td style={{ width:balW, minWidth:balW, background:'#f0fdf4', borderBottom:'2px solid #cbd5e1' }} />
                 <td style={{ width:36, minWidth:36, background:'#f8fafc', borderBottom:'2px solid #cbd5e1' }} />
               </tr>
@@ -1482,9 +1490,36 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                         </td>
                       )
                     })}
+                    {/* Combined vs Need */}
+                    {(() => {
+                      const partPN   = (part.kpn || part.lab126pn || '').trim()
+                      const altGroup = partPN ? bom.filter(p => (p.kpn||p.lab126pn||'').trim() === partPN) : [part]
+                      const combinedAlloc = filteredCfgs.reduce((s, c) => {
+                        const groupQty = altGroup.reduce((gs, p) => { const { qty: q } = resolvePartQty(p, c); return q != null ? gs + q : gs }, 0)
+                        return s + groupQty
+                      }, 0)
+                      const totalNeed = filteredCfgs.reduce((s, c) => s + (part.qtyPerUnit||1) * (Number(c.Quantity)||0), 0)
+                      const isGood    = combinedAlloc === totalNeed
+                      const hasAny    = altGroup.some(p => p.configPctAllocs && Object.keys(p.configPctAllocs).length > 0 || p.configQtyOverrides && Object.keys(p.configQtyOverrides).length > 0)
+                      return (
+                        <td className="bm-flat-cell" style={{ width:140, minWidth:140, fontSize:11, textAlign:'center', borderLeft:'2px solid #94a3b8',
+                          background: !hasAny ? '#f8fafc' : isGood ? '#f0fdf4' : '#fef2f2' }}>
+                          {hasAny ? (
+                            <div>
+                              <div style={{ fontWeight:700, color: isGood ? '#16a34a' : '#dc2626', fontSize:12 }}>
+                                {isGood ? '✓ Good' : '✗ Not Good'}
+                              </div>
+                              <div style={{ fontSize:10, color: isGood ? '#15803d' : '#b91c1c', marginTop:1 }}>
+                                {combinedAlloc.toLocaleString()} / {totalNeed.toLocaleString()}
+                              </div>
+                            </div>
+                          ) : <span className="tm-na-dash">—</span>}
+                        </td>
+                      )
+                    })()}
                     {/* Total shipment qty — editable */}
                     <td className="bm-flat-cell bm-editable-cell bm-cell-num"
-                      style={{ width:totalW, minWidth:totalW, fontSize:12, background:'#eff6ff', borderLeft:'2px solid #94a3b8' }}
+                      style={{ width:totalW, minWidth:totalW, fontSize:12, background:'#eff6ff' }}
                       title="Click to set total shipment qty">
                       {isEdPart('deliveryQty') ? (
                         <input className="bm-inline-input" type="number" value={partDraft} autoFocus style={{width:80,textAlign:'right'}}
@@ -1534,7 +1569,8 @@ function UnifiedCurrentView({ builds, setBuilds, bom, setBom, alerts, allocation
                     const total = filteredBOM.reduce((s,p) => { const r=resolvePartQty(p,c); return r.qty!=null?s+r.qty:s }, 0)
                     return <td key={c.Config} className="bm-flat-cell bm-cell-num" style={{...cw(c.Config), fontWeight:700}}>{total>0?total.toLocaleString():'—'}</td>
                   })}
-                  <td style={{ width:totalW, background:'#eff6ff', borderLeft:'2px solid #94a3b8' }} />
+                  <td style={{ width:140, background:'#f5f3ff', borderLeft:'2px solid #94a3b8' }} />
+                  <td style={{ width:totalW, background:'#eff6ff' }} />
                   <td style={{ width:balW, background:'#f0fdf4' }} />
                   <td style={{ width:36, background:'#f8fafc' }} />
                 </tr>
