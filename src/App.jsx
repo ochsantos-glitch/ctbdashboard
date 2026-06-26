@@ -159,9 +159,16 @@ function App() {
   const alertCount  = alerts.length
   const dangerCount = alerts.filter(a => a.type === 'danger').length
 
+  const [collapsedCats, setCollapsedCats] = useState(new Set())
+  const toggleCat = label => setCollapsedCats(prev => {
+    const next = new Set(prev)
+    next.has(label) ? next.delete(label) : next.add(label)
+    return next
+  })
+
   const navItems = [
     { id: 'dashboard',   label: 'Dashboard' },
-    { type: 'category',  label: 'Program Management' },
+    { type: 'category',  label: 'Program Management', collapsible: true },
     { id: 'budget',      label: 'Budget' },
     { id: 'buildMatrix', label: 'Build Matrix' },
     { id: 'alerts',      label: 'Alerts', badge: alertCount },
@@ -276,24 +283,43 @@ function App() {
           )}
         </div>
         <ul className="nav-menu">
-          {navItems.map((item, idx) =>
-            item.type === 'category' ? (
-              <li key={`cat-${idx}`} className="nav-category">{item.label}</li>
-            ) : (
-              <li
-                key={item.id}
-                className={activePage === item.id ? 'active' : ''}
-                onClick={() => { setActivePage(item.id); setSidebarOpen(false) }}
-              >
-                {item.label}
-                {item.badge > 0 && (
-                  <span className={`nav-badge ${dangerCount > 0 ? 'nav-badge-danger' : 'nav-badge-warning'}`}>
-                    {item.badge}
-                  </span>
-                )}
-              </li>
-            )
-          )}
+          {(() => {
+            let currentCat = null
+            return navItems.map((item, idx) => {
+              if (item.type === 'category') {
+                currentCat = item.label
+                return (
+                  <li
+                    key={`cat-${idx}`}
+                    className={`nav-category${item.collapsible ? ' collapsible' : ''}`}
+                    onClick={item.collapsible ? () => toggleCat(item.label) : undefined}
+                  >
+                    {item.label}
+                    {item.collapsible && (
+                      <span className="nav-cat-chevron">
+                        {collapsedCats.has(item.label) ? '▶' : '▾'}
+                      </span>
+                    )}
+                  </li>
+                )
+              }
+              if (currentCat && collapsedCats.has(currentCat)) return null
+              return (
+                <li
+                  key={item.id}
+                  className={activePage === item.id ? 'active' : ''}
+                  onClick={() => { setActivePage(item.id); setSidebarOpen(false) }}
+                >
+                  {item.label}
+                  {item.badge > 0 && (
+                    <span className={`nav-badge ${dangerCount > 0 ? 'nav-badge-danger' : 'nav-badge-warning'}`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </li>
+              )
+            })
+          })()}
         </ul>
 
         <div className="sidebar-export">
