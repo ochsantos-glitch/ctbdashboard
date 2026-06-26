@@ -174,7 +174,7 @@ function App() {
     { id: 'alerts',      label: 'Alerts', badge: alertCount },
     { id: 'msdevtrack',  label: 'MSDevTrack' },
     { id: 'reports',     label: 'Reports' },
-    { type: 'category',  label: 'Supply Chain' },
+    { type: 'category',  label: 'Supply Chain', collapsible: true },
     { id: 'bomExplorer', label: 'BOM Explorer' },
     { id: 'suppliers',   label: 'Suppliers' },
     { id: 'inventory',   label: 'Inventory' },
