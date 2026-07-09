@@ -16,6 +16,7 @@ import DevTrack from './components/DevTrack'
 import Materials from './components/Materials'
 import Allocation from './components/Allocation'
 import Quotation from './components/Quotation'
+import BOMs from './components/BOMs'
 import { calcAlerts, calcMaterialShortages } from './utils/alertEngine'
 
 const DEFAULT_PLAN = {
@@ -175,6 +176,7 @@ function App() {
     { id: 'msdevtrack',  label: 'MSDevTrack' },
     { id: 'reports',     label: 'Reports' },
     { type: 'category',  label: 'Supply Chain', collapsible: true },
+    { id: 'boms',        label: 'BOMs' },
     { id: 'bomExplorer', label: 'BOM Explorer' },
     { id: 'suppliers',   label: 'Suppliers' },
     { id: 'inventory',   label: 'Inventory' },
@@ -203,6 +205,8 @@ function App() {
             activeProjectId={activeProjectId} setActiveProjectId={setActiveProjectId}
           />
         )
+      case 'boms':
+        return <BOMs bom={bom} setBom={setBom} />
       case 'bomExplorer':
         return <BOMExplorer />
       case 'bom':
