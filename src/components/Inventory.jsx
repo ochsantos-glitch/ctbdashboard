@@ -69,11 +69,13 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
   const [filterProject, setFilterProject] = useState('All')
   const [filterBoard, setFilterBoard] = useState('All')
   const [filterNoStock, setFilterNoStock] = useState(false)
-  const [bomPage,    setBomPage]    = useState(1)
+  const [bomPage,       setBomPage]       = useState(1)
+  const [editingPriceId, setEditingPriceId] = useState(null)
+  const [priceDraft,     setPriceDraft]     = useState('')
   const BOM_PAGE_SIZE = 50
 
   // ── Resizable columns (BOM Materials tab) ────────────────────────────────
-  const BOM_COL_DEFAULTS = [110, 200, 70, 130, 140, 90, 90, 80, 100, 90, 90, 110]
+  const BOM_COL_DEFAULTS = [110, 200, 70, 130, 140, 90, 90, 80, 100, 90, 90, 110, 100]
   const [bomColWidths, setBomColWidths] = useState(() => {
     try { const s = localStorage.getItem('inv-bom-col-widths'); return s ? JSON.parse(s) : BOM_COL_DEFAULTS } catch { return BOM_COL_DEFAULTS }
   })
@@ -301,6 +303,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                         { label:'Category',      ci:9  },
                         { label:'PO #',          ci:10 },
                         { label:'Received Date', ci:11 },
+                        { label:'Unit Price',    ci:12, right:true },
                       ].map(({ label, ci, right }) => (
                         <th key={ci} style={{ padding: 0, overflow: 'hidden', textAlign: right ? 'right' : 'left', position: 'sticky', top: 0, zIndex: 10, background: '#1a1a2e' }}>
                           <div style={{ display:'flex', alignItems:'stretch', height:'100%' }}>
@@ -320,7 +323,7 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                   </thead>
                   <tbody>
                     {filteredBOM.length === 0 ? (
-                      <tr><td colSpan={12} className="inv-empty">No parts match filters.</td></tr>
+                      <tr><td colSpan={13} className="inv-empty">No parts match filters.</td></tr>
                     ) : pagedBOM.map(part => {
                       const relBuilds = filteredBuilds.filter(b => boardOf(b.Config) === part.appliesTo || boardOf(b.Config) === null)
                       const qtyNeeded = relBuilds.reduce((s, b) => s + (part.qtyPerUnit || 1) * (Number(b.Quantity) || 0), 0)
@@ -358,6 +361,42 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                           <td style={{ fontSize:11 }}>{part.category || '—'}</td>
                           <td style={{ fontSize:12 }}>{part.po || <span style={{ color:'#94a3b8' }}>—</span>}</td>
                           <td style={{ fontSize:12 }}>{part.receivedDate || <span style={{ color:'#94a3b8' }}>—</span>}</td>
+                          <td style={{ textAlign:'right', padding:'4px 8px' }}>
+                            {editingPriceId === part.id ? (
+                              <input
+                                className="inv-inline-input"
+                                type="number"
+                                min="0"
+                                step="0.0001"
+                                value={priceDraft}
+                                onChange={e => setPriceDraft(e.target.value)}
+                                onBlur={() => {
+                                  setBom(prev => prev.map(p => p.id === part.id ? { ...p, unitPrice: priceDraft === '' ? null : Number(priceDraft) } : p))
+                                  setEditingPriceId(null)
+                                }}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') {
+                                    setBom(prev => prev.map(p => p.id === part.id ? { ...p, unitPrice: priceDraft === '' ? null : Number(priceDraft) } : p))
+                                    setEditingPriceId(null)
+                                  }
+                                  if (e.key === 'Escape') setEditingPriceId(null)
+                                }}
+                                autoFocus
+                                style={{ width:'100%', textAlign:'right' }}
+                              />
+                            ) : (
+                              <span
+                                className="inv-inline-display"
+                                onClick={() => { setPriceDraft(part.unitPrice != null ? String(part.unitPrice) : ''); setEditingPriceId(part.id) }}
+                                title="Click to edit price"
+                                style={{ display:'block', textAlign:'right' }}
+                              >
+                                {part.unitPrice != null
+                                  ? `$${Number(part.unitPrice).toLocaleString(undefined, { minimumFractionDigits:2, maximumFractionDigits:4 })}`
+                                  : <span style={{ color:'#94a3b8' }}>—</span>}
+                              </span>
+                            )}
+                          </td>
                         </tr>
                       )
                     })}
@@ -366,14 +405,26 @@ export default function Inventory({ bom = [], setBom, builds = [], projects = []
                     <tfoot>
                       <tr className="bom-total-row">
                         <td colSpan={5}><strong>Total Qty Needed</strong></td>
-
                         <td style={{ textAlign:'right' }}>
                           <strong>{filteredBOM.reduce((s, p) => {
                             const rb = filteredBuilds.filter(b => boardOf(b.Config) === p.appliesTo)
                             return s + rb.reduce((rs, b) => rs + (p.qtyPerUnit||1)*(Number(b.Quantity)||0), 0)
                           }, 0).toLocaleString()}</strong>
                         </td>
-                        <td colSpan={2}></td>
+                        <td colSpan={6}></td>
+                        <td style={{ textAlign:'right' }}>
+                          {(() => {
+                            const total = filteredBOM.reduce((s, p) => {
+                              if (p.unitPrice == null) return s
+                              const inc = p.deliveryQty != null ? Number(p.deliveryQty) : (Number(p.materialQtyOrdered) || 0)
+                              return s + Number(p.unitPrice) * inc
+                            }, 0)
+                            const hasAny = filteredBOM.some(p => p.unitPrice != null)
+                            return hasAny
+                              ? <strong>${total.toLocaleString(undefined, { minimumFractionDigits:2, maximumFractionDigits:2 })}</strong>
+                              : null
+                          })()}
+                        </td>
                       </tr>
                     </tfoot>
                   )}
