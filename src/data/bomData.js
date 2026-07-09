@@ -199,4 +199,166 @@ export const bomData = [
       { name: 'Delta Parts',       unitCost: 2.00, leadTimeDays: 14, moq: 500 },
     ],
   },
+
+  // ── Cisco 8000 Router – Top-Level Assembly (C8K) ──────────────────────────
+  {
+    id: 'C8K-901', kpn: 'C8K-901',
+    description: 'Router Chassis – 1U Rack-Mount Steel/Aluminum',
+    category: 'Mechanical', appliesTo: 'C8K', uom: 'EA', qtyPerUnit: 1,
+    suppliers: [
+      { name: 'Foxconn',   unitCost: 215.00, leadTimeDays: 28, moq: 10 },
+      { name: 'Celestica', unitCost: 235.00, leadTimeDays: 21, moq:  5 },
+      { name: 'Jabil',     unitCost: 198.00, leadTimeDays: 35, moq: 20 },
+    ],
+  },
+  {
+    id: 'C8K-902', kpn: 'C8K-902',
+    description: 'System Board Sub-Assembly (C8K-SYB)',
+    category: 'Assembly', appliesTo: 'C8K', uom: 'EA', qtyPerUnit: 1,
+    suppliers: [
+      { name: 'Celestica', unitCost: 2100.00, leadTimeDays: 45, moq: 5 },
+      { name: 'Foxconn',   unitCost: 1980.00, leadTimeDays: 42, moq: 5 },
+    ],
+  },
+  {
+    id: 'C8K-903', kpn: 'C8K-903',
+    description: 'AC/DC Power Supply Unit 3000W Redundant',
+    category: 'Power', appliesTo: 'C8K', uom: 'EA', qtyPerUnit: 2,
+    suppliers: [
+      { name: 'Delta Electronics', unitCost: 520.00, leadTimeDays: 21, moq:  5 },
+      { name: 'Acbel Polytech',    unitCost: 485.00, leadTimeDays: 28, moq: 10 },
+      { name: 'Murata Power',      unitCost: 545.00, leadTimeDays: 18, moq:  5 },
+    ],
+  },
+  {
+    id: 'C8K-904', kpn: 'C8K-904',
+    description: 'Fan Tray Module – N+1 Redundant',
+    category: 'Thermal', appliesTo: 'C8K', uom: 'EA', qtyPerUnit: 2,
+    suppliers: [
+      { name: 'Delta Electronics', unitCost: 145.00, leadTimeDays: 14, moq: 10 },
+      { name: 'Ebm-papst',         unitCost: 162.00, leadTimeDays: 21, moq:  5 },
+      { name: 'Sanyo Denki',       unitCost: 155.00, leadTimeDays: 18, moq: 10 },
+    ],
+  },
+  {
+    id: 'C8K-905', kpn: 'C8K-905',
+    description: 'QSFP-DD 400G Optics Module (SR8)',
+    category: 'Optics', appliesTo: 'C8K', uom: 'EA', qtyPerUnit: 8,
+    suppliers: [
+      { name: 'Coherent (II-VI)', unitCost: 1150.00, leadTimeDays: 35, moq: 1 },
+      { name: 'Lumentum',         unitCost: 1080.00, leadTimeDays: 42, moq: 1 },
+      { name: 'Inphi',            unitCost: 1210.00, leadTimeDays: 28, moq: 1 },
+    ],
+  },
+  {
+    id: 'C8K-906', kpn: 'C8K-906',
+    description: 'Front Panel Assembly (LCD, LEDs, USB 3.0)',
+    category: 'Mechanical', appliesTo: 'C8K', uom: 'EA', qtyPerUnit: 1,
+    suppliers: [
+      { name: 'Foxconn',   unitCost: 62.00, leadTimeDays: 21, moq: 10 },
+      { name: 'Pegatron',  unitCost: 57.50, leadTimeDays: 28, moq: 20 },
+      { name: 'Celestica', unitCost: 65.00, leadTimeDays: 18, moq:  5 },
+    ],
+  },
+  {
+    id: 'C8K-907', kpn: 'C8K-907',
+    description: 'Packaging Set (Master Carton, Foam Inserts, Documentation)',
+    category: 'Packaging', appliesTo: 'C8K', uom: 'EA', qtyPerUnit: 1,
+    suppliers: [
+      { name: 'Smurfit Kappa', unitCost: 22.00, leadTimeDays: 10, moq:  50 },
+      { name: 'WestRock',      unitCost: 20.50, leadTimeDays: 14, moq: 100 },
+      { name: 'Multi-Color',   unitCost: 21.75, leadTimeDays: 12, moq:  75 },
+    ],
+  },
+
+  // ── Cisco 8000 Router – System Board (C8K-SYB) ───────────────────────────
+  {
+    id: 'C8K-911', kpn: 'C8K-911',
+    description: 'PCB – System Board 20-Layer HDI',
+    category: 'PCB', appliesTo: 'C8K-SYB', uom: 'EA', qtyPerUnit: 1,
+    suppliers: [
+      { name: 'TTM Technologies',  unitCost: 480.00, leadTimeDays: 35, moq:  5 },
+      { name: 'Sanmina',           unitCost: 455.00, leadTimeDays: 42, moq:  5 },
+      { name: 'Tripod Technology', unitCost: 420.00, leadTimeDays: 45, moq: 10 },
+    ],
+  },
+  {
+    id: 'C8K-912', kpn: 'C8K-912',
+    description: 'Cisco Silicon One G100 ASIC (TSMC N7)',
+    category: 'ASIC', appliesTo: 'C8K-SYB', uom: 'EA', qtyPerUnit: 1,
+    suppliers: [
+      { name: 'TSMC (Direct)',     unitCost:  950.00, leadTimeDays: 120, moq: 1 },
+      { name: 'Arrow Electronics', unitCost: 1050.00, leadTimeDays:  60, moq: 1 },
+    ],
+  },
+  {
+    id: 'C8K-913', kpn: 'C8K-913',
+    description: 'Intel Xeon D-1736T Processor',
+    category: 'CPU', appliesTo: 'C8K-SYB', uom: 'EA', qtyPerUnit: 1,
+    suppliers: [
+      { name: 'Intel (Direct)',    unitCost: 380.00, leadTimeDays: 14, moq:  1 },
+      { name: 'Arrow Electronics', unitCost: 395.00, leadTimeDays:  7, moq:  1 },
+      { name: 'Avnet',             unitCost: 390.00, leadTimeDays: 10, moq:  1 },
+    ],
+  },
+  {
+    id: 'C8K-914', kpn: 'C8K-914',
+    description: 'DDR5 RDIMM 32GB 4800MHz ECC',
+    category: 'Memory', appliesTo: 'C8K-SYB', uom: 'EA', qtyPerUnit: 4,
+    suppliers: [
+      { name: 'Samsung',  unitCost: 138.00, leadTimeDays: 10, moq: 10 },
+      { name: 'Micron',   unitCost: 132.00, leadTimeDays: 14, moq: 10 },
+      { name: 'SK Hynix', unitCost: 135.00, leadTimeDays: 12, moq: 10 },
+    ],
+  },
+  {
+    id: 'C8K-915', kpn: 'C8K-915',
+    description: 'PMIC – Multi-Phase VRM (12V → 0.85V, 200A)',
+    category: 'IC', appliesTo: 'C8K-SYB', uom: 'EA', qtyPerUnit: 3,
+    suppliers: [
+      { name: 'Texas Instruments', unitCost: 32.50, leadTimeDays: 16, moq:  50 },
+      { name: 'Renesas',           unitCost: 35.00, leadTimeDays: 14, moq:  25 },
+      { name: 'MPS Group',         unitCost: 30.75, leadTimeDays: 21, moq: 100 },
+    ],
+  },
+  {
+    id: 'C8K-916', kpn: 'C8K-916',
+    description: 'QSFP-DD Cage + Backplane Connector Set',
+    category: 'Connector', appliesTo: 'C8K-SYB', uom: 'EA', qtyPerUnit: 1,
+    suppliers: [
+      { name: 'Molex',           unitCost: 28.00, leadTimeDays: 14, moq: 50 },
+      { name: 'TE Connectivity', unitCost: 30.50, leadTimeDays: 10, moq: 25 },
+      { name: 'Amphenol',        unitCost: 26.75, leadTimeDays: 18, moq: 50 },
+    ],
+  },
+  {
+    id: 'C8K-917', kpn: 'C8K-917',
+    description: 'Capacitors – Bulk Electrolytic + Decoupling (0805/0402)',
+    category: 'Passive', appliesTo: 'C8K-SYB', uom: 'EA', qtyPerUnit: 350,
+    suppliers: [
+      { name: 'KEMET',  unitCost: 0.04, leadTimeDays: 10, moq:  5000 },
+      { name: 'Murata', unitCost: 0.05, leadTimeDays:  8, moq: 10000 },
+      { name: 'TDK',    unitCost: 0.04, leadTimeDays: 12, moq:  5000 },
+    ],
+  },
+  {
+    id: 'C8K-918', kpn: 'C8K-918',
+    description: 'Resistors – SMD 0402 / 0201',
+    category: 'Passive', appliesTo: 'C8K-SYB', uom: 'EA', qtyPerUnit: 620,
+    suppliers: [
+      { name: 'Yageo',     unitCost: 0.005, leadTimeDays:  7, moq: 20000 },
+      { name: 'Vishay',    unitCost: 0.007, leadTimeDays: 10, moq: 10000 },
+      { name: 'Panasonic', unitCost: 0.006, leadTimeDays: 14, moq: 10000 },
+    ],
+  },
+  {
+    id: 'C8K-919', kpn: 'C8K-919',
+    description: 'Signal Integrity ICs – Retimer, Clock Buffer, Temp Sensor',
+    category: 'IC', appliesTo: 'C8K-SYB', uom: 'EA', qtyPerUnit: 6,
+    suppliers: [
+      { name: 'Broadcom',          unitCost: 18.50, leadTimeDays: 14, moq:  50 },
+      { name: 'Skyworks',          unitCost: 12.75, leadTimeDays: 18, moq: 100 },
+      { name: 'Texas Instruments', unitCost:  9.50, leadTimeDays: 10, moq: 200 },
+    ],
+  },
 ]
